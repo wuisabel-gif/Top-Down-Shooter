@@ -2,6 +2,10 @@
 
 A simple browser-based top-down shooter built with HTML, CSS, and JavaScript.
 
+## Live Demo
+
+Play here: [https://wuisabel-gif.github.io/Top-Down-Shooter/](https://wuisabel-gif.github.io/Top-Down-Shooter/)
+
 ## Controls
 
 - Move: `WASD` or Arrow Keys
