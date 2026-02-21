@@ -1,0 +1,5 @@
+body { margin: 0; background: #0f172a; color: #e5e7eb; font-family: Trebuchet MS, sans-serif; }
+.app { width: min(100vw, 1000px); margin: 12px auto; padding: 12px; }
+.hud { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.stats { display: flex; gap: 16px; color: #9ca3af; }
+#game { width: 100%; border: 2px solid #1f2937; border-radius: 10px; background: #0b1020; display: block; }
