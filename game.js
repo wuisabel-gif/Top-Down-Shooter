@@ -7,6 +7,12 @@ playerSprite.src = "assets/player/player-avatar-sprite.png";
 const pilotSelectEl = document.getElementById("pilotSelect");
 const confirmPilotEl = document.getElementById("confirmPilot");
 
+function loadImage(src) {
+  const image = new Image();
+  image.src = src;
+  return image;
+}
+
 const hud = {
   healthFill: document.getElementById("healthFill"),
   healthValue: document.getElementById("healthValue"),
@@ -142,20 +148,96 @@ const weapons = [
     ammo: 3,
     icon: "assets/ui/icons/weapons/rocket_launcher.png",
     cooldown: 0.82,
-    damage: 42,
-    speed: 430,
-    projectileRadius: 7,
-    projectileLife: 1.45,
+    damage: 64,
+    speed: 390,
+    projectileRadius: 9,
+    projectileLife: 1.65,
     color: "#ffec8a",
     trailColor: "rgba(255, 85, 54, 0.42)",
     pellets: 1,
     spread: 0,
     pierce: 0,
-    splashRadius: 74,
-    splashDamage: 32,
-    recoil: 8,
+    splashRadius: 125,
+    splashDamage: 82,
+    recoil: 12,
   },
 ];
+
+const enemySprites = {
+  runner: loadImage("assets/enermy/runner.png"),
+  tank: loadImage("assets/enermy/tank.png"),
+  shooter: loadImage("assets/enermy/shooter.png"),
+  exploder: loadImage("assets/enermy/Exploder.png"),
+};
+
+const enemyTypes = {
+  runner: {
+    name: "Runner",
+    sprite: enemySprites.runner,
+    radius: 14,
+    size: 58,
+    hp: 24,
+    speed: 148,
+    contactDps: 24,
+    score: 10,
+    currency: 3,
+    xp: 12,
+    color: "#ff4054",
+    unlockWave: 1,
+    weight: 7,
+  },
+  tank: {
+    name: "Tank",
+    sprite: enemySprites.tank,
+    radius: 23,
+    size: 86,
+    hp: 98,
+    speed: 56,
+    contactDps: 38,
+    score: 22,
+    currency: 5,
+    xp: 20,
+    color: "#ff6540",
+    unlockWave: 2,
+    weight: 3,
+  },
+  shooter: {
+    name: "Shooter",
+    sprite: enemySprites.shooter,
+    radius: 17,
+    size: 68,
+    hp: 46,
+    speed: 82,
+    contactDps: 18,
+    desiredRange: 260,
+    shotCooldown: 1.45,
+    shotDamage: 13,
+    shotSpeed: 315,
+    score: 18,
+    currency: 4,
+    xp: 18,
+    color: "#ff2f65",
+    unlockWave: 3,
+    weight: 4,
+  },
+  exploder: {
+    name: "Exploder",
+    sprite: enemySprites.exploder,
+    radius: 18,
+    size: 72,
+    hp: 34,
+    speed: 116,
+    contactDps: 10,
+    explodeRadius: 88,
+    explodeDamage: 38,
+    score: 16,
+    currency: 4,
+    xp: 16,
+    color: "#ff3656",
+    unlockWave: 4,
+    weight: 3,
+  },
+};
 
 const perks = [
   { name: "Rapid Fire", icon: "assets/ui/icons/perks/rapid_fire.png" },
@@ -200,8 +282,10 @@ const player = {
 };
 
 const bullets = [];
+const enemyBullets = [];
 const enemies = [];
 const particles = [];
+const shockwaves = [];
 const popups = [];
 let last = performance.now();
 
@@ -273,6 +357,17 @@ function setupPilotSelect() {
   selectPilot(state.selectedPilot);
 }
 
+function pickEnemyType() {
+  const available = Object.entries(enemyTypes).filter(([, type]) => state.wave >= type.unlockWave);
+  const totalWeight = available.reduce((sum, [, type]) => sum + type.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const [id, type] of available) {
+    roll -= type.weight;
+    if (roll <= 0) return { id, type };
+  }
+  return { id: "runner", type: enemyTypes.runner };
+}
+
 function spawnEnemy() {
   const side = Math.floor(Math.random() * 4);
   let x = 0;
@@ -283,17 +378,36 @@ function spawnEnemy() {
   if (side === 2) { x = rand(0, world.width); y = world.height + 24; }
   if (side === 3) { x = -24; y = rand(0, world.height); }
 
+  const { id, type } = pickEnemyType();
   const elite = state.wave % 3 === 0 && Math.random() < 0.22;
-  const hp = 24 + state.wave * 7 + (elite ? 52 : 0);
+  const hp = type.hp + state.wave * 7 + (elite ? type.hp * 0.75 : 0);
+  const speed = type.speed + state.wave * 4 - (elite ? 12 : 0);
   enemies.push({
     x,
     y,
-    r: elite ? 17 : 12,
-    speed: rand(64, 112) + state.wave * 6 - (elite ? 16 : 0),
+    type: id,
+    name: type.name,
+    sprite: type.sprite,
+    r: type.radius + (elite ? 4 : 0),
+    drawSize: type.size * (elite ? 1.15 : 1),
+    speed,
     hp,
     maxHp: hp,
+    contactDps: type.contactDps,
+    desiredRange: type.desiredRange || 0,
+    shotCooldown: type.shotCooldown || 0,
+    shotTimer: rand(0.35, type.shotCooldown || 1.2),
+    shotDamage: type.shotDamage || 0,
+    shotSpeed: type.shotSpeed || 0,
+    explodeRadius: type.explodeRadius || 0,
+    explodeDamage: type.explodeDamage || 0,
+    scoreValue: type.score,
+    currencyValue: type.currency,
+    xpValue: type.xp,
+    color: type.color,
     elite,
     hitTimer: 0,
+    angle: 0,
   });
   state.spawned++;
 }
@@ -317,6 +431,18 @@ function addParticles(x, y, color, count, power = 1) {
 
 function addPopup(x, y, text, color = "#eaf8ff") {
   popups.push({ x, y, text, color, life: 0.85, vy: -35 });
+}
+
+function addShockwave(x, y, radius, color = "#ffb13d", life = 0.38) {
+  shockwaves.push({
+    x,
+    y,
+    radius: 8,
+    maxRadius: radius,
+    color,
+    life,
+    maxLife: life,
+  });
 }
 
 function selectWeapon(index) {
@@ -384,9 +510,9 @@ function completeWave() {
 }
 
 function gainRewards(enemy) {
-  state.score += enemy.elite ? 30 : 10;
-  state.currency += enemy.elite ? 7 : 3;
-  state.xp += enemy.elite ? 24 : 12;
+  state.score += Math.round(enemy.scoreValue * (enemy.elite ? 1.7 : 1));
+  state.currency += Math.round(enemy.currencyValue * (enemy.elite ? 1.5 : 1));
+  state.xp += Math.round(enemy.xpValue * (enemy.elite ? 1.6 : 1));
 
   if (state.xp >= state.nextXp) {
     state.xp -= state.nextXp;
@@ -402,23 +528,24 @@ function gainRewards(enemy) {
 function damageEnemy(enemy, amount, hitX, hitY, popupColor = "#bff7ff") {
   enemy.hp -= amount;
   enemy.hitTimer = 0.1;
-  addParticles(hitX, hitY, "#ff4358", enemy.elite ? 10 : 7, enemy.elite ? 1.15 : 0.9);
+  addParticles(hitX, hitY, enemy.color || "#ff4358", enemy.elite ? 10 : 7, enemy.elite ? 1.15 : 0.9);
   addPopup(enemy.x, enemy.y - enemy.r, `${Math.round(amount)}`, popupColor);
   return enemy.hp <= 0;
 }
 
 function killEnemy(index) {
   const enemy = enemies[index];
-  addParticles(enemy.x, enemy.y, enemy.elite ? "#ff3656" : "#ff6b3d", enemy.elite ? 22 : 13, enemy.elite ? 1.4 : 1);
+  addParticles(enemy.x, enemy.y, enemy.elite ? "#ff3656" : enemy.color, enemy.elite ? 22 : 13, enemy.elite ? 1.4 : 1);
   gainRewards(enemy);
-  addPopup(enemy.x, enemy.y, `+${enemy.elite ? 30 : 10}`, "#ffd13f");
+  addPopup(enemy.x, enemy.y, `+${Math.round(enemy.scoreValue * (enemy.elite ? 1.7 : 1))}`, "#ffd13f");
   enemies.splice(index, 1);
 }
 
 function detonateProjectile(bullet) {
   if (!bullet.splashRadius) return;
-  state.shake = Math.max(state.shake, 7);
-  addParticles(bullet.x, bullet.y, "#ffb13d", 30, 1.35);
+  state.shake = Math.max(state.shake, bullet.kind === "rocket" ? 14 : 7);
+  addShockwave(bullet.x, bullet.y, bullet.splashRadius, bullet.kind === "rocket" ? "#ffb13d" : "#ff6b3d");
+  addParticles(bullet.x, bullet.y, "#ffb13d", bullet.kind === "rocket" ? 58 : 30, bullet.kind === "rocket" ? 1.85 : 1.35);
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
     const distance = Math.hypot(e.x - bullet.x, e.y - bullet.y);
@@ -428,6 +555,38 @@ function detonateProjectile(bullet) {
       killEnemy(i);
     }
   }
+}
+
+function explodeEnemy(index) {
+  const enemy = enemies[index];
+  const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+  if (distance <= enemy.explodeRadius + player.r) {
+    const falloff = 1 - clamp(distance / enemy.explodeRadius, 0, 0.72);
+    player.hp = Math.max(0, player.hp - enemy.explodeDamage * falloff);
+    if (player.hp <= 0) state.running = false;
+  }
+  state.shake = Math.max(state.shake, 10);
+  addShockwave(enemy.x, enemy.y, enemy.explodeRadius, "#ff3656", 0.34);
+  addParticles(enemy.x, enemy.y, "#ff3656", 34, 1.45);
+  enemies.splice(index, 1);
+}
+
+function fireEnemyShot(enemy, dx, dy, distance) {
+  const nx = dx / distance;
+  const ny = dy / distance;
+  enemyBullets.push({
+    x: enemy.x + nx * (enemy.r + 8),
+    y: enemy.y + ny * (enemy.r + 8),
+    vx: nx * enemy.shotSpeed,
+    vy: ny * enemy.shotSpeed,
+    r: enemy.elite ? 7 : 5,
+    life: 2.2,
+    damage: enemy.shotDamage * (enemy.elite ? 1.35 : 1),
+    color: enemy.elite ? "#ff2f65" : "#ff4a3d",
+    trailColor: enemy.elite ? "rgba(255, 47, 101, 0.45)" : "rgba(255, 72, 61, 0.38)",
+    trail: [],
+  });
+  addParticles(enemy.x + nx * enemy.r, enemy.y + ny * enemy.r, "#ff4054", enemy.elite ? 7 : 4, 0.7);
 }
 
 function updatePlayer(dt) {
@@ -478,18 +637,72 @@ function updateBullets(dt) {
   }
 }
 
+function updateEnemyBullets(dt) {
+  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+    const b = enemyBullets[i];
+    b.trail.push({ x: b.x, y: b.y });
+    if (b.trail.length > 7) b.trail.shift();
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.life -= dt;
+
+    const out = b.x < -40 || b.y < -40 || b.x > world.width + 40 || b.y > world.height + 40;
+    if (b.life <= 0 || out) {
+      enemyBullets.splice(i, 1);
+      continue;
+    }
+
+    if (Math.hypot(b.x - player.x, b.y - player.y) < b.r + player.r) {
+      player.hp = Math.max(0, player.hp - b.damage);
+      state.shake = Math.max(state.shake, 6);
+      addParticles(b.x, b.y, b.color, 12, 1);
+      enemyBullets.splice(i, 1);
+      if (player.hp <= 0) {
+        state.running = false;
+        state.shake = 12;
+      }
+    }
+  }
+}
+
 function updateEnemies(dt) {
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
     const dx = player.x - e.x;
     const dy = player.y - e.y;
     const m = Math.hypot(dx, dy) || 1;
-    e.x += (dx / m) * e.speed * dt;
-    e.y += (dy / m) * e.speed * dt;
+    const nx = dx / m;
+    const ny = dy / m;
+    e.angle = Math.atan2(ny, nx);
+
+    let moveX = nx;
+    let moveY = ny;
+    if (e.type === "shooter") {
+      if (m < e.desiredRange * 0.68) {
+        moveX = -nx;
+        moveY = -ny;
+      } else if (m < e.desiredRange) {
+        moveX = -ny * 0.65;
+        moveY = nx * 0.65;
+      }
+      e.shotTimer -= dt;
+      if (e.shotTimer <= 0 && m < e.desiredRange * 1.22) {
+        fireEnemyShot(e, dx, dy, m);
+        e.shotTimer = e.shotCooldown * rand(0.82, 1.18);
+      }
+    }
+
+    e.x = clamp(e.x + moveX * e.speed * dt, e.r, world.width - e.r);
+    e.y = clamp(e.y + moveY * e.speed * dt, e.r, world.height - e.r);
     e.hitTimer = Math.max(0, e.hitTimer - dt);
 
+    if (e.type === "exploder" && m < e.explodeRadius * 0.46 + player.r) {
+      explodeEnemy(i);
+      continue;
+    }
+
     if (m < e.r + player.r) {
-      player.hp -= (e.elite ? 34 : 24) * dt;
+      player.hp -= e.contactDps * (e.elite ? 1.35 : 1) * dt;
       state.shake = Math.max(state.shake, 3);
       if (player.hp <= 0) {
         player.hp = 0;
@@ -520,6 +733,14 @@ function updateEnemies(dt) {
 function updateEffects(dt) {
   state.shake = Math.max(0, state.shake - dt * 18);
   state.flashTimer = Math.max(0, state.flashTimer - dt);
+
+  for (let i = shockwaves.length - 1; i >= 0; i--) {
+    const wave = shockwaves[i];
+    wave.life -= dt;
+    const progress = 1 - wave.life / wave.maxLife;
+    wave.radius = wave.maxRadius * clamp(progress, 0, 1);
+    if (wave.life <= 0) shockwaves.splice(i, 1);
+  }
 
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -564,6 +785,7 @@ function update(dt) {
   updatePlayer(dt);
   updateSpawning(dt);
   updateBullets(dt);
+  updateEnemyBullets(dt);
   updateEnemies(dt);
   updateEffects(dt);
   updateHud();
@@ -602,6 +824,73 @@ function drawArena() {
   }
 }
 
+function drawPlayerProjectileIcon(b) {
+  const angle = Math.atan2(b.vy, b.vx);
+  ctx.save();
+  ctx.translate(b.x, b.y);
+  ctx.rotate(angle);
+  ctx.shadowColor = b.color || "#57e7ff";
+
+  if (b.kind === "rocket") {
+    ctx.shadowBlur = 26;
+    ctx.fillStyle = "#ffec8a";
+    ctx.beginPath();
+    ctx.moveTo(15, 0);
+    ctx.lineTo(3, -8);
+    ctx.lineTo(-13, -6);
+    ctx.lineTo(-17, 0);
+    ctx.lineTo(-13, 6);
+    ctx.lineTo(3, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ff5638";
+    ctx.beginPath();
+    ctx.moveTo(-15, -5);
+    ctx.lineTo(-30, 0);
+    ctx.lineTo(-15, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#fff2af";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-5, -4, 10, 8);
+  } else if (b.kind === "laser") {
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = "#67dfff";
+    ctx.beginPath();
+    ctx.moveTo(19, 0);
+    ctx.lineTo(4, -5);
+    ctx.lineTo(-18, -3);
+    ctx.lineTo(-22, 0);
+    ctx.lineTo(-18, 3);
+    ctx.lineTo(4, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#dffbff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-15, 0);
+    ctx.lineTo(15, 0);
+    ctx.stroke();
+  } else if (b.kind === "shotgun") {
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = "#aef8ff";
+    ctx.beginPath();
+    ctx.roundRect(-4, -3, 10, 6, 3);
+    ctx.fill();
+  } else {
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = "#f6fdff";
+    ctx.beginPath();
+    ctx.moveTo(10, 0);
+    ctx.lineTo(-6, -5);
+    ctx.lineTo(-3, 0);
+    ctx.lineTo(-6, 5);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawBullets() {
   ctx.lineCap = "round";
   for (const b of bullets) {
@@ -615,47 +904,78 @@ function drawBullets() {
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
 
-    ctx.fillStyle = b.color || "#f6fdff";
-    ctx.shadowColor = b.color || "#57e7ff";
-    ctx.shadowBlur = b.kind === "rocket" ? 24 : 16;
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-    ctx.fill();
-    if (b.kind === "rocket") {
-      ctx.fillStyle = "#ff6b3d";
-      ctx.beginPath();
-      ctx.arc(b.x - b.vx * 0.016, b.y - b.vy * 0.016, b.r * 0.75, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    drawPlayerProjectileIcon(b);
     ctx.shadowBlur = 0;
   }
 }
 
+function drawEnemyBullets() {
+  ctx.lineCap = "round";
+  for (const b of enemyBullets) {
+    ctx.strokeStyle = b.trailColor;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    for (const [index, point] of b.trail.entries()) {
+      if (index === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    }
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    const angle = Math.atan2(b.vy, b.vx);
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(angle);
+    ctx.shadowColor = b.color;
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.moveTo(12, 0);
+    ctx.lineTo(-7, -7);
+    ctx.lineTo(-3, 0);
+    ctx.lineTo(-7, 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#ffd0d0";
+    ctx.beginPath();
+    ctx.arc(2, 0, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.shadowBlur = 0;
+}
+
 function drawEnemies() {
   for (const e of enemies) {
-    const glow = e.elite ? "#ff3656" : "#ff4054";
+    const glow = e.elite ? "#ff3656" : e.color;
     ctx.save();
     ctx.translate(e.x, e.y);
     ctx.shadowColor = glow;
-    ctx.shadowBlur = e.hitTimer > 0 ? 24 : 14;
-    ctx.fillStyle = e.hitTimer > 0 ? "#fff" : e.elite ? "#7c1525" : "#5a1020";
-    ctx.beginPath();
-    ctx.arc(0, 0, e.r, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.shadowBlur = e.hitTimer > 0 ? 30 : 16;
+    if (e.sprite.complete && e.sprite.naturalWidth > 0) {
+      if (e.type === "runner" || e.type === "shooter") ctx.rotate(e.angle);
+      ctx.globalAlpha = e.hitTimer > 0 ? 0.65 : 1;
+      ctx.drawImage(e.sprite, -e.drawSize / 2, -e.drawSize / 2, e.drawSize, e.drawSize);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = e.hitTimer > 0 ? "#fff" : e.elite ? "#7c1525" : "#5a1020";
+      ctx.beginPath();
+      ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.strokeStyle = glow;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.fillStyle = glow;
+    ctx.lineWidth = e.elite ? 3 : 2;
     ctx.beginPath();
-    ctx.arc(0, 0, e.r * 0.36, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(0, 0, e.r + 5, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
 
-    if (e.elite && e.hp < e.maxHp) {
+    if (e.hp < e.maxHp) {
+      const barWidth = e.elite ? 46 : 34;
       ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-      ctx.fillRect(e.x - 18, e.y - e.r - 11, 36, 4);
-      ctx.fillStyle = "#ff3656";
-      ctx.fillRect(e.x - 18, e.y - e.r - 11, 36 * (e.hp / e.maxHp), 4);
+      ctx.fillRect(e.x - barWidth / 2, e.y - e.r - 17, barWidth, 4);
+      ctx.fillStyle = glow;
+      ctx.fillRect(e.x - barWidth / 2, e.y - e.r - 17, barWidth * (e.hp / e.maxHp), 4);
     }
   }
 }
@@ -708,6 +1028,19 @@ function drawPlayer() {
 }
 
 function drawEffects() {
+  for (const wave of shockwaves) {
+    const alpha = clamp(wave.life / wave.maxLife, 0, 1);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = wave.color;
+    ctx.shadowColor = wave.color;
+    ctx.shadowBlur = 22;
+    ctx.lineWidth = 4 + alpha * 7;
+    ctx.beginPath();
+    ctx.arc(wave.x, wave.y, wave.radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
   for (const p of particles) {
     ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
     ctx.fillStyle = p.color;
@@ -751,9 +1084,9 @@ function renderRadar() {
     const rx = w / 2 + ((e.x - player.x) / world.width) * 130;
     const ry = h / 2 + ((e.y - player.y) / world.height) * 96;
     if (rx < 12 || ry < 12 || rx > w - 12 || ry > h - 12) continue;
-    radarCtx.shadowColor = e.elite ? "#ff3656" : "#ff4054";
+    radarCtx.shadowColor = e.elite ? "#ff3656" : e.color;
     radarCtx.shadowBlur = 8;
-    radarCtx.fillStyle = e.elite ? "#ff3656" : "#ff4054";
+    radarCtx.fillStyle = e.elite ? "#ff3656" : e.color;
     radarCtx.beginPath();
     radarCtx.arc(rx, ry, e.elite ? 4 : 3, 0, Math.PI * 2);
     radarCtx.fill();
@@ -768,6 +1101,7 @@ function render() {
   }
   drawArena();
   drawBullets();
+  drawEnemyBullets();
   drawEnemies();
   drawPlayer();
   drawEffects();
@@ -798,8 +1132,10 @@ function reset() {
   player.cd = 0;
   applyPilot(state.selectedPilot);
   bullets.length = 0;
+  enemyBullets.length = 0;
   enemies.length = 0;
   particles.length = 0;
+  shockwaves.length = 0;
   popups.length = 0;
   setupHud();
   pilotSelectEl?.classList.remove("hidden");
@@ -837,6 +1173,39 @@ canvas.addEventListener("mousedown", (e) => {
 window.addEventListener("mouseup", () => {
   mouse.down = false;
 });
+
+function renderGameToText() {
+  return JSON.stringify({
+    coordinates: "origin top-left, x right, y down",
+    running: state.running,
+    choosingPilot: state.choosingPilot,
+    wave: state.wave,
+    enemiesLeft: enemies.length + Math.max(0, state.target - state.spawned),
+    activeWeapon: activeWeapon().id,
+    player: {
+      x: Math.round(player.x),
+      y: Math.round(player.y),
+      hp: Math.round(player.hp),
+      maxHp: player.maxHp,
+    },
+    enemies: enemies.slice(0, 8).map((enemy) => ({
+      type: enemy.type,
+      x: Math.round(enemy.x),
+      y: Math.round(enemy.y),
+      hp: Math.round(enemy.hp),
+    })),
+    playerBullets: bullets.length,
+    enemyBullets: enemyBullets.length,
+    score: state.score,
+  });
+}
+
+window.render_game_to_text = renderGameToText;
+window.advanceTime = (ms) => {
+  const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+  for (let i = 0; i < steps; i++) update(1 / 60);
+  render();
+};
 
 setupHud();
 setupPilotSelect();
