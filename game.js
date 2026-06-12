@@ -6,6 +6,7 @@ const playerSprite = new Image();
 playerSprite.src = "assets/player/player-avatar-sprite.png";
 const pilotSelectEl = document.getElementById("pilotSelect");
 const confirmPilotEl = document.getElementById("confirmPilot");
+const pilotCardListEl = document.getElementById("pilotCardList");
 
 function loadImage(src) {
   const image = new Image();
@@ -37,52 +38,99 @@ const hud = {
 const pilots = [
   {
     name: "Vanguard",
-    portrait: "assets/player/portraits/pilot-vanguard.png",
+    portrait: "/assets/player/portraits/pilot-vanguard.PNG",
+    role: "Balanced starter",
     maxHpBonus: 0,
     speedBonus: 0,
     damageBonus: 0,
   },
   {
     name: "Sentinel",
-    portrait: "assets/player/portraits/pilot-sentinel.png",
+    portrait: "/assets/player/portraits/pilot-sentinel.PNG",
+    role: "Armored trooper",
     maxHpBonus: 25,
     speedBonus: -18,
     damageBonus: 0,
   },
   {
     name: "Reaper",
-    portrait: "assets/player/portraits/pilot-reaper.png",
+    portrait: "/assets/player/portraits/pilot-reaper.PNG",
+    role: "High-risk hunter",
     maxHpBonus: -10,
     speedBonus: 16,
     damageBonus: 5,
   },
   {
     name: "Striker",
-    portrait: "assets/player/portraits/pilot-striker.png",
+    portrait: "/assets/player/portraits/pilot-striker.PNG",
+    role: "Fast reload",
     maxHpBonus: 0,
     speedBonus: 8,
     damageBonus: 2,
   },
   {
     name: "Hunter",
-    portrait: "assets/player/portraits/pilot-hunter.png",
+    portrait: "/assets/player/portraits/pilot-hunter.PNG",
+    role: "Close combat",
     maxHpBonus: 15,
     speedBonus: -6,
     damageBonus: 4,
   },
   {
     name: "Prowler",
-    portrait: "assets/player/portraits/pilot-prowler.png",
+    portrait: "/assets/player/portraits/pilot-prowler.PNG",
+    role: "High mobility",
     maxHpBonus: -5,
     speedBonus: 28,
     damageBonus: 1,
   },
   {
     name: "Wraith",
-    portrait: "assets/player/portraits/pilot-wraith.png",
+    portrait: "/assets/player/portraits/pilot-wraith.PNG",
+    role: "Heavy damage",
     maxHpBonus: 5,
     speedBonus: -10,
     damageBonus: 8,
+  },
+  {
+    name: "Nova",
+    portrait: "/assets/player/portraits/image.png",
+    role: "Speed caster",
+    maxHpBonus: -8,
+    speedBonus: 22,
+    damageBonus: 3,
+  },
+  {
+    name: "Idol",
+    portrait: "/assets/player/portraits/idol.png",
+    role: "Stable carry",
+    maxHpBonus: 10,
+    speedBonus: 6,
+    damageBonus: 2,
+  },
+  {
+    name: "Flux",
+    portrait: "/assets/player/portraits/fox.png",
+    role: "Evasive scout",
+    maxHpBonus: -12,
+    speedBonus: 34,
+    damageBonus: 2,
+  },
+  {
+    name: "Cipher",
+    portrait: "/assets/player/portraits/8FE61A62-08F6-4832-AFEC-3CC99B461E8B.PNG",
+    role: "Crit specialist",
+    maxHpBonus: 0,
+    speedBonus: 12,
+    damageBonus: 6,
+  },
+  {
+    name: "Aegis",
+    portrait: "/assets/player/portraits/FCCB2459-8BCC-452E-98B5-D9E024BBE040.PNG",
+    role: "Heavy armor",
+    maxHpBonus: 35,
+    speedBonus: -24,
+    damageBonus: 3,
   },
 ];
 
@@ -349,7 +397,19 @@ function setupHud() {
   `).join("");
 }
 
+function renderPilotCards() {
+  if (!pilotCardListEl) return;
+  pilotCardListEl.innerHTML = pilots.map((pilot, index) => `
+    <button class="pilot-card ${index === state.selectedPilot ? "active" : ""}" type="button" data-pilot-index="${index}">
+      <img src="${pilot.portrait}" alt="" aria-hidden="true">
+      <strong>${pilot.name}</strong>
+      <span>${pilot.role}</span>
+    </button>
+  `).join("");
+}
+
 function setupPilotSelect() {
+  renderPilotCards();
   document.querySelectorAll(".pilot-card").forEach((card) => {
     card.addEventListener("click", () => selectPilot(Number(card.dataset.pilotIndex)));
   });

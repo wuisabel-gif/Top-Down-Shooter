@@ -647,6 +647,8 @@ button {
 
 .pilot-select-panel {
   width: min(1120px, 94vw);
+  max-height: min(88vh, 760px);
+  overflow: hidden;
   padding: 28px;
   background:
     linear-gradient(145deg, rgba(3, 14, 26, 0.72), rgba(1, 7, 16, 0.92)),
@@ -682,17 +684,21 @@ button {
 
 .pilot-card-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+  max-height: min(56vh, 470px);
+  overflow: auto;
+  padding: 2px 6px 4px;
+  scrollbar-color: rgba(87, 231, 255, 0.62) rgba(3, 16, 31, 0.42);
 }
 
 .pilot-card {
   pointer-events: auto;
   display: grid;
   justify-items: center;
-  gap: 9px;
+  gap: 8px;
   min-width: 0;
-  padding: 12px 10px 15px;
+  padding: 10px 9px 13px;
   color: var(--text);
   background: rgba(2, 12, 25, 0.78);
   border: 1px solid rgba(49, 167, 255, 0.22);
@@ -708,14 +714,16 @@ button {
 }
 
 .pilot-card img {
-  width: min(100%, 176px);
+  width: min(100%, 142px);
   aspect-ratio: 1;
   object-fit: contain;
   filter: drop-shadow(0 0 16px rgba(87, 231, 255, 0.34));
 }
 
 .pilot-card strong {
-  font-size: 19px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 17px;
   text-transform: uppercase;
 }
 
