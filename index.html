@@ -3,21 +3,118 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Top-Down Shooter</title>
+  <title>Neon Breach</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="app">
-    <header class="hud">
-      <h1>Top-Down Shooter</h1>
-      <div class="stats">
-        <span id="score">Score: 0</span>
-        <span id="health">Health: 100</span>
-        <span id="wave">Wave: 1</span>
+  <main class="game-shell" aria-label="Neon Breach arena">
+    <canvas id="game" width="1280" height="720"></canvas>
+
+    <section class="hud-layer" aria-label="Combat HUD">
+      <aside class="hud-column hud-left">
+        <article class="hud-panel player-panel">
+          <div class="avatar-ring">
+            <div class="avatar-core"></div>
+          </div>
+          <div class="player-readout">
+            <div class="panel-title">Player</div>
+            <div class="bar health-bar" aria-label="Health">
+              <span id="healthFill"></span>
+            </div>
+            <div class="readout-row">
+              <strong id="healthValue">100/100</strong>
+              <span id="levelValue">LVL 1</span>
+            </div>
+            <div class="bar shield-bar" aria-label="Shield">
+              <span></span>
+            </div>
+          </div>
+        </article>
+
+        <article class="hud-panel weapons-panel">
+          <div class="panel-title">Weapons</div>
+          <div id="weaponList" class="weapon-list"></div>
+        </article>
+
+        <article class="hud-panel stats-panel">
+          <div class="panel-title">Stats</div>
+          <dl class="stats-grid">
+            <div><dt>Damage</dt><dd id="damageStat">25</dd></div>
+            <div><dt>Fire Rate</dt><dd id="fireRateStat">6.3/s</dd></div>
+            <div><dt>Speed</dt><dd id="speedStat">270</dd></div>
+            <div><dt>Crit Chance</dt><dd id="critStat">15%</dd></div>
+            <div><dt>Max Health</dt><dd id="maxHealthStat">100</dd></div>
+          </dl>
+        </article>
+      </aside>
+
+      <header class="wave-banner">
+        <strong id="waveValue">Wave 1</strong>
+        <span id="enemiesValue">Enemies left: 10</span>
+      </header>
+
+      <aside class="hud-column hud-right">
+        <article class="hud-panel currency-panel">
+          <span class="coin-icon"></span>
+          <div class="resource-readout">
+            <strong id="currencyValue">0</strong>
+            <span id="scoreValue">Score 0</span>
+          </div>
+          <button class="gear-button" type="button" aria-label="Settings"></button>
+        </article>
+
+        <article class="hud-panel radar-panel">
+          <canvas id="radar" width="220" height="160" aria-label="Radar"></canvas>
+        </article>
+
+        <article class="hud-panel objective-panel">
+          <div>
+            <div class="panel-title">Objective</div>
+            <p id="objectiveText">Survive the wave</p>
+          </div>
+          <span id="objectiveCheck" class="objective-check" aria-hidden="true"></span>
+        </article>
+
+        <article class="hud-panel perks-panel">
+          <div class="panel-title">Perks</div>
+          <div id="perkList" class="perk-list"></div>
+        </article>
+      </aside>
+
+      <footer class="bottom-hud">
+        <div class="xp-strip">
+          <span>XP</span>
+          <div class="bar xp-bar"><span id="xpFill"></span></div>
+          <strong id="xpValue">0 / 100</strong>
+        </div>
+
+        <div class="ability-dock">
+          <button class="ability-card" type="button" aria-label="Shield charge">
+            <span class="ability-icon shield-icon"></span>
+            <strong id="shieldCount">2</strong>
+          </button>
+          <button class="ability-card" type="button" aria-label="Med kit">
+            <span class="ability-icon med-icon"></span>
+            <strong id="medCount">1</strong>
+          </button>
+          <button class="ability-card" type="button" aria-label="Overcharge">
+            <span class="ability-icon bolt-icon"></span>
+            <strong id="chargeCount">1</strong>
+          </button>
+          <button class="ability-card locked" type="button" aria-label="Locked ability">
+            <span class="ability-icon lock-icon"></span>
+          </button>
+        </div>
+      </footer>
+
+      <div class="mobile-controls" aria-hidden="true">
+        <div class="stick"><span></span></div>
+        <button class="shoot-button" type="button" tabindex="-1">Shoot</button>
+        <button class="dash-button" type="button" tabindex="-1">Dash</button>
       </div>
-    </header>
-    <canvas id="game" width="960" height="540"></canvas>
+    </section>
   </main>
+
   <script src="game.js"></script>
 </body>
 </html>
