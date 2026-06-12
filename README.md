@@ -1,9 +1,8 @@
 # Top-Down Shooter
 
-A simple browser-based top-down shooter built with HTML, CSS, and JavaScript.
+A neon sci-fi browser-based top-down roguelike shooter built with HTML, CSS, and JavaScript.
 
-<img width="1027" height="678" alt="image" src="https://github.com/user-attachments/assets/4631b692-7959-4926-b8c2-527995832837" />
-
+![Live demo screenshot](assets/readme/live-demo.png)
 
 ## Live Demo
 

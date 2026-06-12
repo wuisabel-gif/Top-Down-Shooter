@@ -2,6 +2,8 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const radar = document.getElementById("radar");
 const radarCtx = radar.getContext("2d");
+const playerSprite = new Image();
+playerSprite.src = "assets/player/player-avatar-sprite.png";
 
 const hud = {
   healthFill: document.getElementById("healthFill"),
@@ -573,25 +575,31 @@ function drawPlayer() {
   ctx.save();
   ctx.translate(player.x, player.y);
   ctx.rotate(Math.atan2(ny, nx));
-  ctx.shadowColor = "#25dfff";
-  ctx.shadowBlur = 24;
-  ctx.fillStyle = "#0b89d8";
-  ctx.beginPath();
-  ctx.arc(0, 0, player.r, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#d9fbff";
-  ctx.fillRect(4, -4, 27, 8);
-  ctx.fillStyle = "#42eaff";
-  ctx.beginPath();
-  ctx.arc(-4, 0, 7, 0, Math.PI * 2);
-  ctx.fill();
+  if (playerSprite.complete && playerSprite.naturalWidth > 0) {
+    ctx.shadowColor = "#25dfff";
+    ctx.shadowBlur = 18;
+    ctx.drawImage(playerSprite, -39, -43, 82, 82);
+  } else {
+    ctx.shadowColor = "#25dfff";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = "#0b89d8";
+    ctx.beginPath();
+    ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#d9fbff";
+    ctx.fillRect(4, -4, 27, 8);
+    ctx.fillStyle = "#42eaff";
+    ctx.beginPath();
+    ctx.arc(-4, 0, 7, 0, Math.PI * 2);
+    ctx.fill();
+  }
   if (state.flashTimer > 0) {
     ctx.fillStyle = "#ffe26a";
     ctx.beginPath();
-    ctx.moveTo(31, 0);
-    ctx.lineTo(51, -8);
-    ctx.lineTo(48, 0);
-    ctx.lineTo(51, 8);
+    ctx.moveTo(36, 0);
+    ctx.lineTo(60, -9);
+    ctx.lineTo(55, 0);
+    ctx.lineTo(60, 9);
     ctx.closePath();
     ctx.fill();
   }
