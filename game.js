@@ -4,6 +4,8 @@ const radar = document.getElementById("radar");
 const radarCtx = radar.getContext("2d");
 const playerSprite = new Image();
 playerSprite.src = "assets/player/player-avatar-sprite.png";
+const pilotSelectEl = document.getElementById("pilotSelect");
+const confirmPilotEl = document.getElementById("confirmPilot");
 
 const hud = {
   healthFill: document.getElementById("healthFill"),
@@ -25,6 +27,58 @@ const hud = {
   critStat: document.getElementById("critStat"),
   maxHealthStat: document.getElementById("maxHealthStat"),
 };
+
+const pilots = [
+  {
+    name: "Vanguard",
+    portrait: "assets/player/portraits/pilot-vanguard.png",
+    maxHpBonus: 0,
+    speedBonus: 0,
+    damageBonus: 0,
+  },
+  {
+    name: "Sentinel",
+    portrait: "assets/player/portraits/pilot-sentinel.png",
+    maxHpBonus: 25,
+    speedBonus: -18,
+    damageBonus: 0,
+  },
+  {
+    name: "Reaper",
+    portrait: "assets/player/portraits/pilot-reaper.png",
+    maxHpBonus: -10,
+    speedBonus: 16,
+    damageBonus: 5,
+  },
+  {
+    name: "Striker",
+    portrait: "assets/player/portraits/pilot-striker.png",
+    maxHpBonus: 0,
+    speedBonus: 8,
+    damageBonus: 2,
+  },
+  {
+    name: "Hunter",
+    portrait: "assets/player/portraits/pilot-hunter.png",
+    maxHpBonus: 15,
+    speedBonus: -6,
+    damageBonus: 4,
+  },
+  {
+    name: "Prowler",
+    portrait: "assets/player/portraits/pilot-prowler.png",
+    maxHpBonus: -5,
+    speedBonus: 28,
+    damageBonus: 1,
+  },
+  {
+    name: "Wraith",
+    portrait: "assets/player/portraits/pilot-wraith.png",
+    maxHpBonus: 5,
+    speedBonus: -10,
+    damageBonus: 8,
+  },
+];
 
 const keys = new Set();
 const mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
@@ -113,7 +167,9 @@ const perks = [
 ];
 
 const state = {
-  running: true,
+  running: false,
+  choosingPilot: true,
+  selectedPilot: 0,
   score: 0,
   currency: 0,
   wave: 1,
@@ -133,10 +189,13 @@ const player = {
   y: world.height / 2,
   r: 15,
   speed: 270,
+  baseSpeed: 270,
   maxHp: 100,
+  baseMaxHp: 100,
   hp: 100,
   cd: 0,
   damageBonus: 0,
+  baseDamageBonus: 0,
   critChance: 0.15,
 };
 
@@ -151,6 +210,34 @@ const rand = (a, b) => Math.random() * (b - a) + a;
 const pct = (value, max) => `${clamp((value / max) * 100, 0, 100)}%`;
 const activeWeapon = () => weapons[state.activeWeapon];
 const weaponDamage = (weapon) => weapon.damage + player.damageBonus;
+
+function applyPilot(index) {
+  const pilot = pilots[index];
+  state.selectedPilot = index;
+  player.maxHp = player.baseMaxHp + pilot.maxHpBonus;
+  player.speed = player.baseSpeed + pilot.speedBonus;
+  player.damageBonus = player.baseDamageBonus + pilot.damageBonus;
+  player.hp = player.maxHp;
+  const avatar = document.querySelector(".avatar-core");
+  if (avatar) avatar.src = pilot.portrait;
+}
+
+function selectPilot(index) {
+  if (index < 0 || index >= pilots.length) return;
+  applyPilot(index);
+  document.querySelectorAll(".pilot-card").forEach((card) => {
+    card.classList.toggle("active", Number(card.dataset.pilotIndex) === index);
+  });
+  updateHud();
+}
+
+function deployPilot() {
+  state.choosingPilot = false;
+  state.running = true;
+  pilotSelectEl?.classList.add("hidden");
+  addPopup(player.x, player.y - 40, pilots[state.selectedPilot].name, "#57e7ff");
+  updateHud();
+}
 
 function setupHud() {
   hud.weaponList.innerHTML = weapons.map((weapon, index) => `
@@ -176,6 +263,14 @@ function setupHud() {
       <span class="perk-name">${perk.name}</span>
     </div>
   `).join("");
+}
+
+function setupPilotSelect() {
+  document.querySelectorAll(".pilot-card").forEach((card) => {
+    card.addEventListener("click", () => selectPilot(Number(card.dataset.pilotIndex)));
+  });
+  confirmPilotEl?.addEventListener("click", deployPilot);
+  selectPilot(state.selectedPilot);
 }
 
 function spawnEnemy() {
@@ -683,7 +778,8 @@ function render() {
 
 function reset() {
   Object.assign(state, {
-    running: true,
+    running: false,
+    choosingPilot: true,
     score: 0,
     currency: 0,
     wave: 1,
@@ -699,14 +795,14 @@ function reset() {
   });
   player.x = world.width / 2;
   player.y = world.height / 2;
-  player.hp = player.maxHp;
   player.cd = 0;
-  player.damageBonus = 0;
+  applyPilot(state.selectedPilot);
   bullets.length = 0;
   enemies.length = 0;
   particles.length = 0;
   popups.length = 0;
   setupHud();
+  pilotSelectEl?.classList.remove("hidden");
   updateHud();
 }
 
@@ -743,5 +839,6 @@ window.addEventListener("mouseup", () => {
 });
 
 setupHud();
+setupPilotSelect();
 updateHud();
 requestAnimationFrame(frame);
