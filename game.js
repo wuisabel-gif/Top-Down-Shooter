@@ -29,19 +29,85 @@ const mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
 const world = { width: 1280, height: 720 };
 
 const weapons = [
-  { name: "Pistol", ammo: 6 },
-  { name: "Shotgun", ammo: 5 },
-  { name: "Laser", ammo: 4 },
-  { name: "Rocket", ammo: 3 },
+  {
+    id: "pistol",
+    name: "Pistol",
+    ammo: 6,
+    icon: "assets/ui/icons/weapons/pistol.png",
+    cooldown: 0.18,
+    damage: 25,
+    speed: 700,
+    projectileRadius: 4,
+    projectileLife: 1,
+    color: "#f6fdff",
+    trailColor: "rgba(87, 231, 255, 0.3)",
+    pellets: 1,
+    spread: 0,
+    pierce: 0,
+    recoil: 2,
+  },
+  {
+    id: "shotgun",
+    name: "Shotgun",
+    ammo: 5,
+    icon: "assets/ui/icons/weapons/shotgun.png",
+    cooldown: 0.52,
+    damage: 13,
+    speed: 620,
+    projectileRadius: 3.5,
+    projectileLife: 0.42,
+    color: "#aef8ff",
+    trailColor: "rgba(87, 231, 255, 0.22)",
+    pellets: 7,
+    spread: 0.38,
+    pierce: 0,
+    recoil: 5,
+  },
+  {
+    id: "laser",
+    name: "Laser",
+    ammo: 4,
+    icon: "assets/ui/icons/weapons/laser.png",
+    cooldown: 0.09,
+    damage: 9,
+    speed: 1040,
+    projectileRadius: 3,
+    projectileLife: 0.58,
+    color: "#47a8ff",
+    trailColor: "rgba(36, 169, 255, 0.42)",
+    pellets: 1,
+    spread: 0,
+    pierce: 4,
+    recoil: 1,
+  },
+  {
+    id: "rocket",
+    name: "Rocket",
+    ammo: 3,
+    icon: "assets/ui/icons/weapons/rocket_launcher.png",
+    cooldown: 0.82,
+    damage: 42,
+    speed: 430,
+    projectileRadius: 7,
+    projectileLife: 1.45,
+    color: "#ffec8a",
+    trailColor: "rgba(255, 85, 54, 0.42)",
+    pellets: 1,
+    spread: 0,
+    pierce: 0,
+    splashRadius: 74,
+    splashDamage: 32,
+    recoil: 8,
+  },
 ];
 
 const perks = [
-  { name: "Rapid Fire", symbol: "|||", color: "#ffd13f" },
-  { name: "Max Health", symbol: "+", color: "#43f46d" },
-  { name: "Speed Boost", symbol: ">>", color: "#24a9ff" },
-  { name: "Piercing", symbol: "//", color: "#b36bff" },
-  { name: "Regen", symbol: "+", color: "#38f86c" },
-  { name: "Crit Damage", symbol: "*", color: "#ff4d58" },
+  { name: "Rapid Fire", icon: "assets/ui/icons/perks/rapid_fire.png" },
+  { name: "Max Health", icon: "assets/ui/icons/perks/max_health.png" },
+  { name: "Speed Boost", icon: "assets/ui/icons/perks/speed_boost.png" },
+  { name: "Piercing", icon: "assets/ui/icons/perks/piercing.png" },
+  { name: "Regen", icon: "assets/ui/icons/perks/regeneration.png" },
+  { name: "Crit Damage", icon: "assets/ui/icons/perks/crit_damage.png" },
 ];
 
 const state = {
@@ -55,7 +121,7 @@ const state = {
   spawnTimer: 0,
   spawned: 0,
   target: 10,
-  activeWeapon: 1,
+  activeWeapon: 0,
   shake: 0,
   flashTimer: 0,
 };
@@ -68,8 +134,7 @@ const player = {
   maxHp: 100,
   hp: 100,
   cd: 0,
-  fireRate: 0.16,
-  damage: 25,
+  damageBonus: 0,
   critChance: 0.15,
 };
 
@@ -87,7 +152,7 @@ function setupHud() {
   hud.weaponList.innerHTML = weapons.map((weapon, index) => `
     <div class="weapon-row ${index === state.activeWeapon ? "active" : ""}">
       <span class="weapon-slot">${index + 1}</span>
-      <span class="weapon-icon" aria-hidden="true"></span>
+      <img class="weapon-icon" src="${weapon.icon}" alt="" aria-hidden="true">
       <span>
         <span class="weapon-name">${weapon.name}</span>
         <span class="ammo-pips">${Array.from({ length: 7 }, (_, pip) => (
@@ -99,9 +164,7 @@ function setupHud() {
 
   hud.perkList.innerHTML = perks.map((perk) => `
     <div class="perk-card">
-      <span class="perk-hex" style="color: ${perk.color}">
-        <span class="perk-symbol">${perk.symbol}</span>
-      </span>
+      <img class="perk-icon" src="${perk.icon}" alt="" aria-hidden="true">
       <span class="perk-name">${perk.name}</span>
     </div>
   `).join("");
@@ -504,38 +567,18 @@ function renderRadar() {
   const w = radar.width;
   const h = radar.height;
   radarCtx.clearRect(0, 0, w, h);
-  radarCtx.strokeStyle = "rgba(49, 167, 255, 0.24)";
-  radarCtx.lineWidth = 2;
-  radarCtx.beginPath();
-  radarCtx.arc(w / 2, h / 2, 28, 0, Math.PI * 2);
-  radarCtx.arc(w / 2, h / 2, 58, 0, Math.PI * 2);
-  radarCtx.stroke();
-  radarCtx.strokeStyle = "rgba(49, 167, 255, 0.14)";
-  radarCtx.beginPath();
-  radarCtx.moveTo(w / 2, 12);
-  radarCtx.lineTo(w / 2, h - 12);
-  radarCtx.moveTo(18, h / 2);
-  radarCtx.lineTo(w - 18, h / 2);
-  radarCtx.stroke();
-
-  radarCtx.fillStyle = "#eff8ff";
-  radarCtx.beginPath();
-  radarCtx.moveTo(w / 2, h / 2 - 10);
-  radarCtx.lineTo(w / 2 + 8, h / 2 + 10);
-  radarCtx.lineTo(w / 2, h / 2 + 6);
-  radarCtx.lineTo(w / 2 - 8, h / 2 + 10);
-  radarCtx.closePath();
-  radarCtx.fill();
-
   for (const e of enemies) {
     const rx = w / 2 + ((e.x - player.x) / world.width) * 130;
     const ry = h / 2 + ((e.y - player.y) / world.height) * 96;
     if (rx < 12 || ry < 12 || rx > w - 12 || ry > h - 12) continue;
+    radarCtx.shadowColor = e.elite ? "#ff3656" : "#ff4054";
+    radarCtx.shadowBlur = 8;
     radarCtx.fillStyle = e.elite ? "#ff3656" : "#ff4054";
     radarCtx.beginPath();
     radarCtx.arc(rx, ry, e.elite ? 4 : 3, 0, Math.PI * 2);
     radarCtx.fill();
   }
+  radarCtx.shadowBlur = 0;
 }
 
 function render() {

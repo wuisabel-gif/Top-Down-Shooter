@@ -14,7 +14,7 @@
       <aside class="hud-column hud-left">
         <article class="hud-panel player-panel">
           <div class="avatar-ring">
-            <div class="avatar-core"></div>
+            <img class="avatar-core" src="assets/ui/panels/player-avatar-frame.png" alt="" aria-hidden="true">
           </div>
           <div class="player-readout">
             <div class="panel-title">Player</div>
@@ -55,12 +55,14 @@
 
       <aside class="hud-column hud-right">
         <article class="hud-panel currency-panel">
-          <span class="coin-icon"></span>
+          <img class="coin-icon" src="assets/ui/icons/system/currency_coin.png" alt="" aria-hidden="true">
           <div class="resource-readout">
             <strong id="currencyValue">0</strong>
             <span id="scoreValue">Score 0</span>
           </div>
-          <button class="gear-button" type="button" aria-label="Settings"></button>
+          <button class="gear-button" type="button" aria-label="Settings">
+            <img src="assets/ui/icons/system/settings_gear.png" alt="" aria-hidden="true">
+          </button>
         </article>
 
         <article class="hud-panel radar-panel">
@@ -90,19 +92,19 @@
 
         <div class="ability-dock">
           <button class="ability-card" type="button" aria-label="Shield charge">
-            <span class="ability-icon shield-icon"></span>
+            <img class="ability-icon" src="assets/ui/icons/abilities/shield_charge.png" alt="" aria-hidden="true">
             <strong id="shieldCount">2</strong>
           </button>
           <button class="ability-card" type="button" aria-label="Med kit">
-            <span class="ability-icon med-icon"></span>
+            <img class="ability-icon" src="assets/ui/icons/abilities/med_kit.png" alt="" aria-hidden="true">
             <strong id="medCount">1</strong>
           </button>
           <button class="ability-card" type="button" aria-label="Overcharge">
-            <span class="ability-icon bolt-icon"></span>
+            <img class="ability-icon" src="assets/ui/icons/abilities/overcharge.png" alt="" aria-hidden="true">
             <strong id="chargeCount">1</strong>
           </button>
           <button class="ability-card locked" type="button" aria-label="Locked ability">
-            <span class="ability-icon lock-icon"></span>
+            <img class="ability-icon" src="assets/ui/icons/abilities/locked.png" alt="" aria-hidden="true">
           </button>
         </div>
       </footer>
