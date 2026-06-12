@@ -3,14 +3,19 @@ const ctx = canvas.getContext("2d");
 const radar = document.getElementById("radar");
 const radarCtx = radar.getContext("2d");
 const playerSprite = new Image();
-playerSprite.src = "assets/player/player-avatar-sprite.png";
 const pilotSelectEl = document.getElementById("pilotSelect");
 const confirmPilotEl = document.getElementById("confirmPilot");
 const pilotCardListEl = document.getElementById("pilotCardList");
 
+function assetUrl(path) {
+  return new URL(path.replace(/^\//, ""), window.location.href).toString();
+}
+
+playerSprite.src = assetUrl("assets/player/player-avatar-sprite.png");
+
 function loadImage(src) {
   const image = new Image();
-  image.src = src;
+  image.src = assetUrl(src);
   return image;
 }
 
@@ -38,7 +43,7 @@ const hud = {
 const pilots = [
   {
     name: "Vanguard",
-    portrait: "/assets/player/portraits/pilot-vanguard.PNG",
+    portrait: assetUrl("assets/player/portraits/pilot-vanguard.PNG"),
     role: "Balanced starter",
     maxHpBonus: 0,
     speedBonus: 0,
@@ -46,7 +51,7 @@ const pilots = [
   },
   {
     name: "Sentinel",
-    portrait: "/assets/player/portraits/pilot-sentinel.PNG",
+    portrait: assetUrl("assets/player/portraits/pilot-sentinel.PNG"),
     role: "Armored trooper",
     maxHpBonus: 25,
     speedBonus: -18,
@@ -54,7 +59,7 @@ const pilots = [
   },
   {
     name: "Reaper",
-    portrait: "/assets/player/portraits/pilot-reaper.PNG",
+    portrait: assetUrl("assets/player/portraits/pilot-reaper.PNG"),
     role: "High-risk hunter",
     maxHpBonus: -10,
     speedBonus: 16,
@@ -62,7 +67,7 @@ const pilots = [
   },
   {
     name: "Striker",
-    portrait: "/assets/player/portraits/pilot-striker.PNG",
+    portrait: assetUrl("assets/player/portraits/pilot-striker.PNG"),
     role: "Fast reload",
     maxHpBonus: 0,
     speedBonus: 8,
@@ -70,7 +75,7 @@ const pilots = [
   },
   {
     name: "Hunter",
-    portrait: "/assets/player/portraits/pilot-hunter.PNG",
+    portrait: assetUrl("assets/player/portraits/pilot-hunter.PNG"),
     role: "Close combat",
     maxHpBonus: 15,
     speedBonus: -6,
@@ -78,7 +83,7 @@ const pilots = [
   },
   {
     name: "Prowler",
-    portrait: "/assets/player/portraits/pilot-prowler.PNG",
+    portrait: assetUrl("assets/player/portraits/pilot-prowler.PNG"),
     role: "High mobility",
     maxHpBonus: -5,
     speedBonus: 28,
@@ -86,7 +91,7 @@ const pilots = [
   },
   {
     name: "Wraith",
-    portrait: "/assets/player/portraits/pilot-wraith.PNG",
+    portrait: assetUrl("assets/player/portraits/pilot-wraith.PNG"),
     role: "Heavy damage",
     maxHpBonus: 5,
     speedBonus: -10,
@@ -94,7 +99,7 @@ const pilots = [
   },
   {
     name: "Nova",
-    portrait: "/assets/player/portraits/image.png",
+    portrait: assetUrl("assets/player/portraits/image.png"),
     role: "Speed caster",
     maxHpBonus: -8,
     speedBonus: 22,
@@ -102,7 +107,7 @@ const pilots = [
   },
   {
     name: "Idol",
-    portrait: "/assets/player/portraits/idol.png",
+    portrait: assetUrl("assets/player/portraits/idol.png"),
     role: "Stable carry",
     maxHpBonus: 10,
     speedBonus: 6,
@@ -110,7 +115,7 @@ const pilots = [
   },
   {
     name: "Flux",
-    portrait: "/assets/player/portraits/fox.png",
+    portrait: assetUrl("assets/player/portraits/fox.png"),
     role: "Evasive scout",
     maxHpBonus: -12,
     speedBonus: 34,
@@ -118,7 +123,7 @@ const pilots = [
   },
   {
     name: "Cipher",
-    portrait: "/assets/player/portraits/8FE61A62-08F6-4832-AFEC-3CC99B461E8B.PNG",
+    portrait: assetUrl("assets/player/portraits/8FE61A62-08F6-4832-AFEC-3CC99B461E8B.PNG"),
     role: "Crit specialist",
     maxHpBonus: 0,
     speedBonus: 12,
@@ -126,7 +131,7 @@ const pilots = [
   },
   {
     name: "Aegis",
-    portrait: "/assets/player/portraits/FCCB2459-8BCC-452E-98B5-D9E024BBE040.PNG",
+    portrait: assetUrl("assets/player/portraits/FCCB2459-8BCC-452E-98B5-D9E024BBE040.PNG"),
     role: "Heavy armor",
     maxHpBonus: 35,
     speedBonus: -24,
@@ -143,7 +148,7 @@ const weapons = [
     id: "pistol",
     name: "Pistol",
     ammo: 6,
-    icon: "assets/ui/icons/weapons/pistol.png",
+    icon: assetUrl("assets/ui/icons/weapons/pistol.png"),
     cooldown: 0.18,
     damage: 25,
     speed: 700,
@@ -160,7 +165,7 @@ const weapons = [
     id: "shotgun",
     name: "Shotgun",
     ammo: 5,
-    icon: "assets/ui/icons/weapons/shotgun.png",
+    icon: assetUrl("assets/ui/icons/weapons/shotgun.png"),
     cooldown: 0.52,
     damage: 13,
     speed: 620,
@@ -177,7 +182,7 @@ const weapons = [
     id: "laser",
     name: "Laser",
     ammo: 4,
-    icon: "assets/ui/icons/weapons/laser.png",
+    icon: assetUrl("assets/ui/icons/weapons/laser.png"),
     cooldown: 0.09,
     damage: 9,
     speed: 1040,
@@ -194,7 +199,7 @@ const weapons = [
     id: "rocket",
     name: "Rocket",
     ammo: 3,
-    icon: "assets/ui/icons/weapons/rocket_launcher.png",
+    icon: assetUrl("assets/ui/icons/weapons/rocket_launcher.png"),
     cooldown: 0.82,
     damage: 64,
     speed: 390,
@@ -288,12 +293,12 @@ const enemyTypes = {
 };
 
 const perks = [
-  { name: "Rapid Fire", icon: "assets/ui/icons/perks/rapid_fire.png" },
-  { name: "Max Health", icon: "assets/ui/icons/perks/max_health.png" },
-  { name: "Speed Boost", icon: "assets/ui/icons/perks/speed_boost.png" },
-  { name: "Piercing", icon: "assets/ui/icons/perks/piercing.png" },
-  { name: "Regen", icon: "assets/ui/icons/perks/regeneration.png" },
-  { name: "Crit Damage", icon: "assets/ui/icons/perks/crit_damage.png" },
+  { name: "Rapid Fire", icon: assetUrl("assets/ui/icons/perks/rapid_fire.png") },
+  { name: "Max Health", icon: assetUrl("assets/ui/icons/perks/max_health.png") },
+  { name: "Speed Boost", icon: assetUrl("assets/ui/icons/perks/speed_boost.png") },
+  { name: "Piercing", icon: assetUrl("assets/ui/icons/perks/piercing.png") },
+  { name: "Regen", icon: assetUrl("assets/ui/icons/perks/regeneration.png") },
+  { name: "Crit Damage", icon: assetUrl("assets/ui/icons/perks/crit_damage.png") },
 ];
 
 const state = {
@@ -1010,8 +1015,8 @@ function drawEnemies() {
     const glow = e.elite ? "#ff3656" : e.color;
     ctx.save();
     ctx.translate(e.x, e.y);
-    ctx.shadowColor = glow;
-    ctx.shadowBlur = e.hitTimer > 0 ? 30 : 16;
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
     if (e.sprite.complete && e.sprite.naturalWidth > 0) {
       if (e.type === "runner" || e.type === "shooter") ctx.rotate(e.angle);
       ctx.globalAlpha = e.hitTimer > 0 ? 0.65 : 1;
@@ -1144,8 +1149,8 @@ function renderRadar() {
     const rx = w / 2 + ((e.x - player.x) / world.width) * 130;
     const ry = h / 2 + ((e.y - player.y) / world.height) * 96;
     if (rx < 12 || ry < 12 || rx > w - 12 || ry > h - 12) continue;
-    radarCtx.shadowColor = e.elite ? "#ff3656" : e.color;
-    radarCtx.shadowBlur = 8;
+    radarCtx.shadowColor = "transparent";
+    radarCtx.shadowBlur = 0;
     radarCtx.fillStyle = e.elite ? "#ff3656" : e.color;
     radarCtx.beginPath();
     radarCtx.arc(rx, ry, e.elite ? 4 : 3, 0, Math.PI * 2);
