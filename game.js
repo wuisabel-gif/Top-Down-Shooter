@@ -147,10 +147,12 @@ let last = performance.now();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rand = (a, b) => Math.random() * (b - a) + a;
 const pct = (value, max) => `${clamp((value / max) * 100, 0, 100)}%`;
+const activeWeapon = () => weapons[state.activeWeapon];
+const weaponDamage = (weapon) => weapon.damage + player.damageBonus;
 
 function setupHud() {
   hud.weaponList.innerHTML = weapons.map((weapon, index) => `
-    <div class="weapon-row ${index === state.activeWeapon ? "active" : ""}">
+    <button class="weapon-row ${index === state.activeWeapon ? "active" : ""}" type="button" data-weapon-index="${index}">
       <span class="weapon-slot">${index + 1}</span>
       <img class="weapon-icon" src="${weapon.icon}" alt="" aria-hidden="true">
       <span>
@@ -159,8 +161,12 @@ function setupHud() {
           `<span class="${pip < weapon.ammo ? "filled" : ""}"></span>`
         )).join("")}</span>
       </span>
-    </div>
+    </button>
   `).join("");
+
+  hud.weaponList.querySelectorAll("[data-weapon-index]").forEach((row) => {
+    row.addEventListener("click", () => selectWeapon(Number(row.dataset.weaponIndex)));
+  });
 
   hud.perkList.innerHTML = perks.map((perk) => `
     <div class="perk-card">
@@ -181,13 +187,14 @@ function spawnEnemy() {
   if (side === 3) { x = -24; y = rand(0, world.height); }
 
   const elite = state.wave % 3 === 0 && Math.random() < 0.22;
+  const hp = 24 + state.wave * 7 + (elite ? 52 : 0);
   enemies.push({
     x,
     y,
     r: elite ? 17 : 12,
     speed: rand(64, 112) + state.wave * 6 - (elite ? 16 : 0),
-    hp: 1 + Math.floor(state.wave / 3) + (elite ? 2 : 0),
-    maxHp: 1 + Math.floor(state.wave / 3) + (elite ? 2 : 0),
+    hp,
+    maxHp: hp,
     elite,
     hitTimer: 0,
   });
@@ -215,26 +222,58 @@ function addPopup(x, y, text, color = "#eaf8ff") {
   popups.push({ x, y, text, color, life: 0.85, vy: -35 });
 }
 
+function selectWeapon(index) {
+  if (index < 0 || index >= weapons.length || state.activeWeapon === index) return;
+  state.activeWeapon = index;
+  player.cd = Math.min(player.cd, 0.08);
+  setupHud();
+  updateHud();
+  addPopup(player.x, player.y - 34, weapons[index].name, "#57e7ff");
+}
+
+function spawnProjectile(weapon, nx, ny, angleOffset = 0) {
+  const angle = Math.atan2(ny, nx) + angleOffset;
+  const vx = Math.cos(angle) * weapon.speed;
+  const vy = Math.sin(angle) * weapon.speed;
+  const crit = Math.random() < player.critChance;
+  bullets.push({
+    x: player.x + Math.cos(angle) * 20,
+    y: player.y + Math.sin(angle) * 20,
+    vx,
+    vy,
+    r: weapon.projectileRadius,
+    life: weapon.projectileLife,
+    damage: weaponDamage(weapon) * (crit ? 2 : 1),
+    crit,
+    pierceLeft: weapon.pierce,
+    splashRadius: weapon.splashRadius || 0,
+    splashDamage: weapon.splashDamage || 0,
+    color: weapon.color,
+    trailColor: weapon.trailColor,
+    kind: weapon.id,
+    trail: [],
+    hitEnemies: new Set(),
+  });
+}
+
 function fire() {
+  const weapon = activeWeapon();
   const dx = mouse.x - player.x;
   const dy = mouse.y - player.y;
   const m = Math.hypot(dx, dy) || 1;
   const nx = dx / m;
   const ny = dy / m;
 
-  bullets.push({
-    x: player.x + nx * 18,
-    y: player.y + ny * 18,
-    vx: nx * 650,
-    vy: ny * 650,
-    r: 4,
-    life: 1.05,
-    trail: [],
-  });
+  const pelletCount = weapon.pellets || 1;
+  const firstOffset = pelletCount === 1 ? 0 : -weapon.spread / 2;
+  const step = pelletCount === 1 ? 0 : weapon.spread / (pelletCount - 1);
+  for (let i = 0; i < pelletCount; i++) {
+    spawnProjectile(weapon, nx, ny, firstOffset + step * i + rand(-0.018, 0.018));
+  }
 
   state.flashTimer = 0.07;
-  state.shake = Math.max(state.shake, 2);
-  addParticles(player.x + nx * 24, player.y + ny * 24, "#62eaff", 5, 0.8);
+  state.shake = Math.max(state.shake, weapon.recoil);
+  addParticles(player.x + nx * 24, player.y + ny * 24, weapon.color, weapon.id === "shotgun" ? 12 : 6, 0.8);
 }
 
 function completeWave() {
@@ -256,10 +295,41 @@ function gainRewards(enemy) {
     state.xp -= state.nextXp;
     state.level++;
     state.nextXp += 50;
-    player.damage += 3;
+    player.damageBonus += 3;
     player.hp = clamp(player.hp + 18, 0, player.maxHp);
     addPopup(player.x, player.y - 48, "Level Up", "#ffd13f");
     state.shake = 7;
+  }
+}
+
+function damageEnemy(enemy, amount, hitX, hitY, popupColor = "#bff7ff") {
+  enemy.hp -= amount;
+  enemy.hitTimer = 0.1;
+  addParticles(hitX, hitY, "#ff4358", enemy.elite ? 10 : 7, enemy.elite ? 1.15 : 0.9);
+  addPopup(enemy.x, enemy.y - enemy.r, `${Math.round(amount)}`, popupColor);
+  return enemy.hp <= 0;
+}
+
+function killEnemy(index) {
+  const enemy = enemies[index];
+  addParticles(enemy.x, enemy.y, enemy.elite ? "#ff3656" : "#ff6b3d", enemy.elite ? 22 : 13, enemy.elite ? 1.4 : 1);
+  gainRewards(enemy);
+  addPopup(enemy.x, enemy.y, `+${enemy.elite ? 30 : 10}`, "#ffd13f");
+  enemies.splice(index, 1);
+}
+
+function detonateProjectile(bullet) {
+  if (!bullet.splashRadius) return;
+  state.shake = Math.max(state.shake, 7);
+  addParticles(bullet.x, bullet.y, "#ffb13d", 30, 1.35);
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    const distance = Math.hypot(e.x - bullet.x, e.y - bullet.y);
+    if (distance > bullet.splashRadius + e.r) continue;
+    const falloff = 1 - clamp(distance / bullet.splashRadius, 0, 0.75);
+    if (damageEnemy(e, bullet.splashDamage * falloff, bullet.x, bullet.y, "#ffd13f")) {
+      killEnemy(i);
+    }
   }
 }
 
@@ -278,7 +348,7 @@ function updatePlayer(dt) {
   player.cd -= dt;
   if ((mouse.down || keys.has(" ")) && player.cd <= 0) {
     fire();
-    player.cd = player.fireRate;
+    player.cd = activeWeapon().cooldown;
   }
 }
 
@@ -304,7 +374,10 @@ function updateBullets(dt) {
     b.life -= dt;
 
     const out = b.x < -30 || b.y < -30 || b.x > world.width + 30 || b.y > world.height + 30;
-    if (b.life <= 0 || out) bullets.splice(i, 1);
+    if (b.life <= 0 || out) {
+      if (b.splashRadius && !out) detonateProjectile(b);
+      bullets.splice(i, 1);
+    }
   }
 }
 
@@ -330,18 +403,16 @@ function updateEnemies(dt) {
 
     for (let j = bullets.length - 1; j >= 0; j--) {
       const b = bullets[j];
+      if (b.hitEnemies.has(e)) continue;
       if (Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.r) {
-        bullets.splice(j, 1);
-        e.hp--;
-        e.hitTimer = 0.1;
-        addParticles(b.x, b.y, "#ff4358", 8, e.elite ? 1.15 : 0.9);
-        addPopup(e.x, e.y - e.r, `${player.damage}`, "#bff7ff");
-
-        if (e.hp <= 0) {
-          addParticles(e.x, e.y, e.elite ? "#ff3656" : "#ff6b3d", e.elite ? 22 : 13, e.elite ? 1.4 : 1);
-          gainRewards(e);
-          addPopup(e.x, e.y, `+${e.elite ? 30 : 10}`, "#ffd13f");
-          enemies.splice(i, 1);
+        b.hitEnemies.add(e);
+        const dead = damageEnemy(e, b.damage, b.x, b.y, b.crit ? "#ffd13f" : "#bff7ff");
+        if (b.splashRadius) detonateProjectile(b);
+        if (dead && enemies[i] === e) killEnemy(i);
+        if (b.pierceLeft > 0 && !b.splashRadius) {
+          b.pierceLeft--;
+        } else {
+          bullets.splice(j, 1);
         }
         break;
       }
@@ -384,8 +455,8 @@ function updateHud() {
   hud.xpValue.textContent = `${state.xp} / ${state.nextXp}`;
   hud.objectiveText.textContent = enemiesLeft > 0 ? "Survive the wave" : "Sector secure";
   hud.objectiveCheck.style.background = enemiesLeft > 0 ? "transparent" : "rgba(40,244,111,0.45)";
-  hud.damageStat.textContent = player.damage;
-  hud.fireRateStat.textContent = `${(1 / player.fireRate).toFixed(1)}/s`;
+  hud.damageStat.textContent = weaponDamage(activeWeapon());
+  hud.fireRateStat.textContent = `${(1 / activeWeapon().cooldown).toFixed(1)}/s`;
   hud.speedStat.textContent = player.speed;
   hud.critStat.textContent = `${Math.round(player.critChance * 100)}%`;
   hud.maxHealthStat.textContent = player.maxHp;
@@ -437,8 +508,8 @@ function drawArena() {
 function drawBullets() {
   ctx.lineCap = "round";
   for (const b of bullets) {
-    ctx.strokeStyle = "rgba(66, 217, 255, 0.28)";
-    ctx.lineWidth = 8;
+    ctx.strokeStyle = b.trailColor || "rgba(66, 217, 255, 0.28)";
+    ctx.lineWidth = b.kind === "rocket" ? 11 : b.kind === "laser" ? 6 : 8;
     ctx.beginPath();
     for (const [index, point] of b.trail.entries()) {
       if (index === 0) ctx.moveTo(point.x, point.y);
@@ -447,12 +518,18 @@ function drawBullets() {
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
 
-    ctx.fillStyle = "#f6fdff";
-    ctx.shadowColor = "#57e7ff";
-    ctx.shadowBlur = 16;
+    ctx.fillStyle = b.color || "#f6fdff";
+    ctx.shadowColor = b.color || "#57e7ff";
+    ctx.shadowBlur = b.kind === "rocket" ? 24 : 16;
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
+    if (b.kind === "rocket") {
+      ctx.fillStyle = "#ff6b3d";
+      ctx.beginPath();
+      ctx.arc(b.x - b.vx * 0.016, b.y - b.vy * 0.016, b.r * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.shadowBlur = 0;
   }
 }
@@ -608,6 +685,7 @@ function reset() {
     spawnTimer: 0,
     spawned: 0,
     target: 10,
+    activeWeapon: 0,
     shake: 0,
     flashTimer: 0,
   });
@@ -615,11 +693,12 @@ function reset() {
   player.y = world.height / 2;
   player.hp = player.maxHp;
   player.cd = 0;
-  player.damage = 25;
+  player.damageBonus = 0;
   bullets.length = 0;
   enemies.length = 0;
   particles.length = 0;
   popups.length = 0;
+  setupHud();
   updateHud();
 }
 
@@ -635,6 +714,7 @@ window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
   keys.add(k);
   if (k === "r" && !state.running) reset();
+  if (["1", "2", "3", "4"].includes(k)) selectWeapon(Number(k) - 1);
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
 });
 
