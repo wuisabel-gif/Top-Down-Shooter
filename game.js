@@ -99,7 +99,7 @@ const pilots = [
   },
   {
     name: "Nova",
-    portrait: assetUrl("assets/player/portraits/image.png"),
+    portrait: assetUrl("assets/player/portraits/pilot-nova.png"),
     role: "Speed caster",
     maxHpBonus: -8,
     speedBonus: 22,
@@ -115,7 +115,7 @@ const pilots = [
   },
   {
     name: "Flux",
-    portrait: assetUrl("assets/player/portraits/fox.png"),
+    portrait: assetUrl("assets/player/portraits/pilot-flux.png"),
     role: "Evasive scout",
     maxHpBonus: -12,
     speedBonus: 34,
@@ -123,7 +123,7 @@ const pilots = [
   },
   {
     name: "Cipher",
-    portrait: assetUrl("assets/player/portraits/8FE61A62-08F6-4832-AFEC-3CC99B461E8B.PNG"),
+    portrait: assetUrl("assets/player/portraits/pilot-cipher.PNG"),
     role: "Crit specialist",
     maxHpBonus: 0,
     speedBonus: 12,
@@ -131,7 +131,7 @@ const pilots = [
   },
   {
     name: "Aegis",
-    portrait: assetUrl("assets/player/portraits/FCCB2459-8BCC-452E-98B5-D9E024BBE040.PNG"),
+    portrait: assetUrl("assets/player/portraits/pilot-aegis.PNG"),
     role: "Heavy armor",
     maxHpBonus: 35,
     speedBonus: -24,
