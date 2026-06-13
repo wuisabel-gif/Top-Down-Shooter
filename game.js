@@ -144,78 +144,100 @@ const keys = new Set();
 const mouse = { x: canvas.width / 2, y: canvas.height / 2, down: false };
 const world = { width: 1280, height: 720 };
 
-const weapons = [
-  {
-    id: "pistol",
+const WEAPONS = {
+  pistol: {
     name: "Pistol",
-    ammo: 6,
+    damage: 12,
+    fireRate: 0.22,
+    projectileSpeed: 620,
+    spread: 0,
+    projectileCount: 1,
+    pierce: 0,
+    knockback: 60,
+    reloadTime: 0,
+    magazineSize: Infinity,
+    critChance: 0.08,
+    critMultiplier: 1.75,
+    description: "Balanced starter weapon.",
     icon: assetUrl("assets/ui/icons/weapons/pistol.png"),
-    cooldown: 0.18,
-    damage: 25,
-    speed: 700,
     projectileRadius: 4,
     projectileLife: 1,
     color: "#f6fdff",
     trailColor: "rgba(87, 231, 255, 0.3)",
-    pellets: 1,
-    spread: 0,
-    pierce: 0,
     recoil: 2,
+    uiPips: 6,
   },
-  {
-    id: "shotgun",
+  shotgun: {
     name: "Shotgun",
-    ammo: 5,
+    damage: 7,
+    fireRate: 0.75,
+    projectileSpeed: 520,
+    spread: 0.45,
+    projectileCount: 6,
+    pierce: 0,
+    knockback: 120,
+    reloadTime: 0,
+    magazineSize: Infinity,
+    critChance: 0.05,
+    critMultiplier: 1.5,
+    description: "Close-range burst weapon.",
     icon: assetUrl("assets/ui/icons/weapons/shotgun.png"),
-    cooldown: 0.52,
-    damage: 13,
-    speed: 620,
     projectileRadius: 3.5,
     projectileLife: 0.42,
     color: "#aef8ff",
     trailColor: "rgba(87, 231, 255, 0.22)",
-    pellets: 7,
-    spread: 0.38,
-    pierce: 0,
     recoil: 5,
+    uiPips: 5,
   },
-  {
-    id: "laser",
+  laser: {
     name: "Laser",
-    ammo: 4,
+    damage: 5,
+    fireRate: 0.08,
+    projectileSpeed: 900,
+    spread: 0,
+    projectileCount: 1,
+    pierce: 4,
+    knockback: 20,
+    reloadTime: 0,
+    magazineSize: Infinity,
+    critChance: 0.12,
+    critMultiplier: 1.6,
+    description: "Fast piercing energy weapon.",
     icon: assetUrl("assets/ui/icons/weapons/laser.png"),
-    cooldown: 0.09,
-    damage: 9,
-    speed: 1040,
     projectileRadius: 3,
     projectileLife: 0.58,
     color: "#47a8ff",
     trailColor: "rgba(36, 169, 255, 0.42)",
-    pellets: 1,
-    spread: 0,
-    pierce: 4,
     recoil: 1,
+    uiPips: 4,
   },
-  {
-    id: "rocket",
-    name: "Rocket",
-    ammo: 3,
+  rocket: {
+    name: "Rocket Launcher",
+    damage: 35,
+    fireRate: 1.25,
+    projectileSpeed: 360,
+    spread: 0,
+    projectileCount: 1,
+    pierce: 0,
+    knockback: 180,
+    explosionRadius: 90,
+    splashDamage: 22,
+    reloadTime: 0,
+    magazineSize: Infinity,
+    critChance: 0.04,
+    critMultiplier: 2,
+    description: "Slow explosive heavy weapon.",
     icon: assetUrl("assets/ui/icons/weapons/rocket_launcher.png"),
-    cooldown: 0.82,
-    damage: 64,
-    speed: 390,
     projectileRadius: 9,
     projectileLife: 1.65,
     color: "#ffec8a",
     trailColor: "rgba(255, 85, 54, 0.42)",
-    pellets: 1,
-    spread: 0,
-    pierce: 0,
-    splashRadius: 125,
-    splashDamage: 82,
     recoil: 12,
+    uiPips: 3,
   },
-];
+};
+
+const weaponOrder = ["pistol", "shotgun", "laser", "rocket"];
 
 const enemySprites = {
   runner: loadImage("assets/enermy/runner.png"),
@@ -347,8 +369,10 @@ let last = performance.now();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const rand = (a, b) => Math.random() * (b - a) + a;
 const pct = (value, max) => `${clamp((value / max) * 100, 0, 100)}%`;
-const activeWeapon = () => weapons[state.activeWeapon];
+const activeWeapon = () => ({ id: weaponOrder[state.activeWeapon], ...WEAPONS[weaponOrder[state.activeWeapon]] });
 const weaponDamage = (weapon) => weapon.damage + player.damageBonus;
+const weaponCritChance = (weapon) => clamp(weapon.critChance + player.critChance, 0, 1);
+const weaponDisplayList = () => weaponOrder.map((id) => ({ id, ...WEAPONS[id] }));
 
 function isPhonePortraitBlocked() {
   const isTouchDevice = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
@@ -391,14 +415,15 @@ function deployPilot() {
 }
 
 function setupHud() {
-  hud.weaponList.innerHTML = weapons.map((weapon, index) => `
+  const weaponList = weaponDisplayList();
+  hud.weaponList.innerHTML = weaponList.map((weapon, index) => `
     <button class="weapon-row ${index === state.activeWeapon ? "active" : ""}" type="button" data-weapon-index="${index}">
       <span class="weapon-slot">${index + 1}</span>
       <img class="weapon-icon" src="${weapon.icon}" alt="" aria-hidden="true">
       <span>
         <span class="weapon-name">${weapon.name}</span>
         <span class="ammo-pips">${Array.from({ length: 7 }, (_, pip) => (
-          `<span class="${pip < weapon.ammo ? "filled" : ""}"></span>`
+          `<span class="${pip < weapon.uiPips ? "filled" : ""}"></span>`
         )).join("")}</span>
       </span>
     </button>
@@ -525,19 +550,19 @@ function addShockwave(x, y, radius, color = "#ffb13d", life = 0.38) {
 }
 
 function selectWeapon(index) {
-  if (index < 0 || index >= weapons.length || state.activeWeapon === index) return;
+  if (index < 0 || index >= weaponOrder.length || state.activeWeapon === index) return;
   state.activeWeapon = index;
   player.cd = Math.min(player.cd, 0.08);
   setupHud();
   updateHud();
-  addPopup(player.x, player.y - 34, weapons[index].name, "#57e7ff");
+  addPopup(player.x, player.y - 34, activeWeapon().name, "#57e7ff");
 }
 
 function spawnProjectile(weapon, nx, ny, angleOffset = 0) {
   const angle = Math.atan2(ny, nx) + angleOffset;
-  const vx = Math.cos(angle) * weapon.speed;
-  const vy = Math.sin(angle) * weapon.speed;
-  const crit = Math.random() < player.critChance;
+  const vx = Math.cos(angle) * weapon.projectileSpeed;
+  const vy = Math.sin(angle) * weapon.projectileSpeed;
+  const crit = Math.random() < weaponCritChance(weapon);
   bullets.push({
     x: player.x + Math.cos(angle) * 20,
     y: player.y + Math.sin(angle) * 20,
@@ -545,10 +570,11 @@ function spawnProjectile(weapon, nx, ny, angleOffset = 0) {
     vy,
     r: weapon.projectileRadius,
     life: weapon.projectileLife,
-    damage: weaponDamage(weapon) * (crit ? 2 : 1),
+    damage: weaponDamage(weapon) * (crit ? weapon.critMultiplier : 1),
     crit,
     pierceLeft: weapon.pierce,
-    splashRadius: weapon.splashRadius || 0,
+    knockback: weapon.knockback || 0,
+    splashRadius: weapon.explosionRadius || 0,
     splashDamage: weapon.splashDamage || 0,
     color: weapon.color,
     trailColor: weapon.trailColor,
@@ -566,16 +592,17 @@ function fire() {
   const nx = dx / m;
   const ny = dy / m;
 
-  const pelletCount = weapon.pellets || 1;
-  const firstOffset = pelletCount === 1 ? 0 : -weapon.spread / 2;
-  const step = pelletCount === 1 ? 0 : weapon.spread / (pelletCount - 1);
-  for (let i = 0; i < pelletCount; i++) {
-    spawnProjectile(weapon, nx, ny, firstOffset + step * i + rand(-0.018, 0.018));
+  const projectileCount = weapon.projectileCount || 1;
+  const firstOffset = projectileCount === 1 ? 0 : -weapon.spread / 2;
+  const step = projectileCount === 1 ? 0 : weapon.spread / (projectileCount - 1);
+  for (let i = 0; i < projectileCount; i++) {
+    const randomSpread = weapon.spread === 0 ? 0 : rand(-0.018, 0.018);
+    spawnProjectile(weapon, nx, ny, firstOffset + step * i + randomSpread);
   }
 
   state.flashTimer = 0.07;
   state.shake = Math.max(state.shake, weapon.recoil);
-  addParticles(player.x + nx * 24, player.y + ny * 24, weapon.color, weapon.id === "shotgun" ? 12 : 6, 0.8);
+  addParticles(player.x + nx * 24, player.y + ny * 24, weapon.color, projectileCount > 1 ? 12 : 6, 0.8);
 }
 
 function completeWave() {
@@ -636,6 +663,14 @@ function detonateProjectile(bullet) {
   }
 }
 
+function applyKnockback(enemy, bullet) {
+  if (!bullet.knockback) return;
+  const speed = Math.hypot(bullet.vx, bullet.vy) || 1;
+  const push = bullet.knockback / Math.max(enemy.r, 12);
+  enemy.x = clamp(enemy.x + (bullet.vx / speed) * push, enemy.r, world.width - enemy.r);
+  enemy.y = clamp(enemy.y + (bullet.vy / speed) * push, enemy.r, world.height - enemy.r);
+}
+
 function explodeEnemy(index) {
   const enemy = enemies[index];
   const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
@@ -683,7 +718,7 @@ function updatePlayer(dt) {
   player.cd -= dt;
   if ((mouse.down || keys.has(" ")) && player.cd <= 0) {
     fire();
-    player.cd = activeWeapon().cooldown;
+    player.cd = activeWeapon().fireRate;
   }
 }
 
@@ -795,6 +830,7 @@ function updateEnemies(dt) {
       if (b.hitEnemies.has(e)) continue;
       if (Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.r) {
         b.hitEnemies.add(e);
+        applyKnockback(e, b);
         const dead = damageEnemy(e, b.damage, b.x, b.y, b.crit ? "#ffd13f" : "#bff7ff");
         if (b.splashRadius) detonateProjectile(b);
         if (dead && enemies[i] === e) killEnemy(i);
@@ -853,9 +889,9 @@ function updateHud() {
   hud.objectiveText.textContent = enemiesLeft > 0 ? "Survive the wave" : "Sector secure";
   hud.objectiveCheck.style.background = enemiesLeft > 0 ? "transparent" : "rgba(40,244,111,0.45)";
   hud.damageStat.textContent = weaponDamage(activeWeapon());
-  hud.fireRateStat.textContent = `${(1 / activeWeapon().cooldown).toFixed(1)}/s`;
+  hud.fireRateStat.textContent = `${(1 / activeWeapon().fireRate).toFixed(1)}/s`;
   hud.speedStat.textContent = player.speed;
-  hud.critStat.textContent = `${Math.round(player.critChance * 100)}%`;
+  hud.critStat.textContent = `${Math.round(weaponCritChance(activeWeapon()) * 100)}%`;
   hud.maxHealthStat.textContent = player.maxHp;
 }
 
