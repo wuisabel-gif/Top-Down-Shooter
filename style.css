@@ -250,6 +250,14 @@ button {
   box-shadow: inset 0 0 18px rgba(22, 140, 255, 0.17), 0 0 14px rgba(22, 140, 255, 0.18);
 }
 
+.weapon-row.locked {
+  opacity: 0.68;
+}
+
+.weapon-row.locked .weapon-icon {
+  filter: grayscale(0.35) drop-shadow(0 0 6px rgba(87, 231, 255, 0.28));
+}
+
 .weapon-row:hover {
   border-color: rgba(87, 231, 255, 0.58);
 }
@@ -269,6 +277,15 @@ button {
 
 .weapon-name {
   display: block;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.weapon-cost {
+  display: block;
+  margin-top: 4px;
+  color: var(--gold);
+  font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
 }

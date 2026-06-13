@@ -205,6 +205,7 @@ const WEAPONS = {
     critChance: 0.08,
     critMultiplier: 1.75,
     description: "Balanced starter weapon.",
+    unlockCost: 0,
     icon: assetUrl("assets/ui/icons/weapons/pistol.png"),
     projectileRadius: 4,
     projectileLife: 1,
@@ -227,6 +228,7 @@ const WEAPONS = {
     critChance: 0.05,
     critMultiplier: 1.5,
     description: "Close-range burst weapon.",
+    unlockCost: 8,
     icon: assetUrl("assets/ui/icons/weapons/shotgun.png"),
     projectileRadius: 3.5,
     projectileLife: 0.42,
@@ -249,6 +251,7 @@ const WEAPONS = {
     critChance: 0.12,
     critMultiplier: 1.6,
     description: "Fast piercing energy weapon.",
+    unlockCost: 16,
     icon: assetUrl("assets/ui/icons/weapons/laser.png"),
     projectileRadius: 3,
     projectileLife: 0.58,
@@ -273,6 +276,7 @@ const WEAPONS = {
     critChance: 0.04,
     critMultiplier: 2,
     description: "Slow explosive heavy weapon.",
+    unlockCost: 28,
     icon: assetUrl("assets/ui/icons/weapons/rocket_launcher.png"),
     projectileRadius: 9,
     projectileLife: 1.65,
@@ -384,8 +388,9 @@ const state = {
   nextXp: 100,
   spawnTimer: 0,
   spawned: 0,
-  target: 6,
+  target: 5,
   activeWeapon: 0,
+  unlockedWeapons: ["pistol"],
   shake: 0,
   flashTimer: 0,
 };
@@ -424,6 +429,15 @@ const maxWeaponDamage = Math.max(...weaponOrder.map((id) => WEAPONS[id].damage))
 
 function weaponDamagePips(weapon) {
   return clamp(Math.round((weapon.damage / maxWeaponDamage) * 7), 1, 7);
+}
+
+function isWeaponUnlocked(id) {
+  return state.unlockedWeapons.includes(id);
+}
+
+function weaponCostLabel(weapon) {
+  if (isWeaponUnlocked(weapon.id)) return "Owned";
+  return `${weapon.unlockCost} coins`;
 }
 
 function ensureMusic() {
@@ -532,7 +546,7 @@ function deployPilot() {
 function setupHud() {
   const weaponList = weaponDisplayList();
   hud.weaponList.innerHTML = weaponList.map((weapon, index) => `
-    <button class="weapon-row ${index === state.activeWeapon ? "active" : ""}" type="button" data-weapon-index="${index}">
+    <button class="weapon-row ${index === state.activeWeapon ? "active" : ""} ${isWeaponUnlocked(weapon.id) ? "" : "locked"}" type="button" data-weapon-index="${index}">
       <span class="weapon-slot">${index + 1}</span>
       <img class="weapon-icon" src="${weapon.icon}" alt="" aria-hidden="true">
       <span>
@@ -540,6 +554,7 @@ function setupHud() {
         <span class="ammo-pips">${Array.from({ length: 7 }, (_, pip) => (
           `<span class="${pip < weaponDamagePips(weapon) ? "filled" : ""}"></span>`
         )).join("")}</span>
+        <span class="weapon-cost">${weaponCostLabel(weapon)}</span>
       </span>
     </button>
   `).join("");
@@ -577,7 +592,7 @@ function setupPilotSelect() {
 }
 
 function pickEnemyType() {
-  if (state.wave === 1) {
+  if (state.wave <= 2) {
     return { id: "runner", type: enemyTypes.runner };
   }
   const available = Object.entries(enemyTypes).filter(([, type]) => state.wave >= type.unlockWave);
@@ -601,10 +616,14 @@ function spawnEnemy() {
   if (side === 3) { x = -24; y = rand(0, world.height); }
 
   const { id, type } = pickEnemyType();
-  const elite = state.wave % 3 === 0 && Math.random() < 0.22;
-  const earlyWave = state.wave === 1;
-  const hp = (earlyWave ? type.hp * 0.62 : type.hp + state.wave * 7) + (elite ? type.hp * 0.75 : 0);
-  const speed = (earlyWave ? type.speed * 0.78 : type.speed + state.wave * 4) - (elite ? 12 : 0);
+  const elite = state.wave > 2 && state.wave % 3 === 0 && Math.random() < 0.22;
+  const waveEase = state.wave === 1
+    ? { hp: 0.55, speed: 0.72 }
+    : state.wave === 2
+      ? { hp: 0.78, speed: 0.86 }
+      : null;
+  const hp = (waveEase ? type.hp * waveEase.hp : type.hp + state.wave * 7) + (elite ? type.hp * 0.75 : 0);
+  const speed = (waveEase ? type.speed * waveEase.speed : type.speed + state.wave * 4) - (elite ? 12 : 0);
   enemies.push({
     x,
     y,
@@ -670,6 +689,18 @@ function addShockwave(x, y, radius, color = "#ffb13d", life = 0.38) {
 
 function selectWeapon(index) {
   if (index < 0 || index >= weaponOrder.length || state.activeWeapon === index) return;
+  const id = weaponOrder[index];
+  const weapon = { id, ...WEAPONS[id] };
+  if (!isWeaponUnlocked(id)) {
+    if (state.currency < weapon.unlockCost) {
+      addPopup(player.x, player.y - 34, `${weapon.unlockCost} coins`, "#ffd13f");
+      return;
+    }
+    state.currency -= weapon.unlockCost;
+    state.unlockedWeapons.push(id);
+    playSfx("uiDeploy", { volume: 0.45, playbackRate: 1.08 });
+    addPopup(player.x, player.y - 34, `${weapon.name} unlocked`, "#57e7ff");
+  }
   state.activeWeapon = index;
   player.cd = Math.min(player.cd, 0.08);
   setupHud();
@@ -729,7 +760,7 @@ function fire() {
 function completeWave() {
   state.wave++;
   state.spawned = 0;
-  state.target = state.wave === 2 ? 10 : 8 + state.wave * 3;
+  state.target = state.wave === 2 ? 8 : 8 + state.wave * 3;
   state.spawnTimer = 0;
   player.hp = clamp(player.hp + 12, 0, player.maxHp);
   playSfx("waveStart", { volume: 0.58, playbackRate: 1.04 });
@@ -857,8 +888,10 @@ function updateSpawning(dt) {
   if (state.spawned < state.target && state.spawnTimer <= 0) {
     spawnEnemy();
     state.spawnTimer = state.wave === 1
-      ? 1.12
-      : Math.max(0.18, 0.72 - state.wave * 0.045);
+      ? 1.2
+      : state.wave === 2
+        ? 0.95
+        : Math.max(0.18, 0.72 - state.wave * 0.045);
   }
 
   if (state.spawned >= state.target && enemies.length === 0) {
@@ -1372,8 +1405,9 @@ function reset() {
     nextXp: 100,
     spawnTimer: 0,
     spawned: 0,
-    target: 6,
+    target: 5,
     activeWeapon: 0,
+    unlockedWeapons: ["pistol"],
     shake: 0,
     flashTimer: 0,
   });
