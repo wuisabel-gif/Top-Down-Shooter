@@ -107,8 +107,8 @@ const pilots = [
     damageBonus: 3,
   },
   {
-    name: "Idol",
-    portrait: assetUrl("assets/player/portraits/idol.png"),
+    name: "Idol Pilot",
+    portrait: assetUrl("assets/player/portraits/pilot-idol.png"),
     role: "Stable carry",
     maxHpBonus: 10,
     speedBonus: 6,
@@ -137,6 +137,22 @@ const pilots = [
     maxHpBonus: 35,
     speedBonus: -24,
     damageBonus: 3,
+  },
+  {
+    name: "Echo",
+    portrait: assetUrl("assets/player/portraits/pilot-echo.png"),
+    role: "Burst skirmisher",
+    maxHpBonus: -4,
+    speedBonus: 18,
+    damageBonus: 5,
+  },
+  {
+    name: "Oracle",
+    portrait: assetUrl("assets/player/portraits/pilot-oracle.png"),
+    role: "Tactical support",
+    maxHpBonus: 18,
+    speedBonus: -2,
+    damageBonus: 4,
   },
 ];
 
