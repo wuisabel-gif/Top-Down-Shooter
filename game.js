@@ -384,7 +384,7 @@ const state = {
   nextXp: 100,
   spawnTimer: 0,
   spawned: 0,
-  target: 10,
+  target: 6,
   activeWeapon: 0,
   shake: 0,
   flashTimer: 0,
@@ -420,6 +420,11 @@ const activeWeapon = () => ({ id: weaponOrder[state.activeWeapon], ...WEAPONS[we
 const weaponDamage = (weapon) => weapon.damage + player.damageBonus;
 const weaponCritChance = (weapon) => clamp(weapon.critChance + player.critChance, 0, 1);
 const weaponDisplayList = () => weaponOrder.map((id) => ({ id, ...WEAPONS[id] }));
+const maxWeaponDamage = Math.max(...weaponOrder.map((id) => WEAPONS[id].damage));
+
+function weaponDamagePips(weapon) {
+  return clamp(Math.round((weapon.damage / maxWeaponDamage) * 7), 1, 7);
+}
 
 function ensureMusic() {
   if (audioState.music) return audioState.music;
@@ -533,7 +538,7 @@ function setupHud() {
       <span>
         <span class="weapon-name">${weapon.name}</span>
         <span class="ammo-pips">${Array.from({ length: 7 }, (_, pip) => (
-          `<span class="${pip < weapon.uiPips ? "filled" : ""}"></span>`
+          `<span class="${pip < weaponDamagePips(weapon) ? "filled" : ""}"></span>`
         )).join("")}</span>
       </span>
     </button>
@@ -572,6 +577,9 @@ function setupPilotSelect() {
 }
 
 function pickEnemyType() {
+  if (state.wave === 1) {
+    return { id: "runner", type: enemyTypes.runner };
+  }
   const available = Object.entries(enemyTypes).filter(([, type]) => state.wave >= type.unlockWave);
   const totalWeight = available.reduce((sum, [, type]) => sum + type.weight, 0);
   let roll = Math.random() * totalWeight;
@@ -594,8 +602,9 @@ function spawnEnemy() {
 
   const { id, type } = pickEnemyType();
   const elite = state.wave % 3 === 0 && Math.random() < 0.22;
-  const hp = type.hp + state.wave * 7 + (elite ? type.hp * 0.75 : 0);
-  const speed = type.speed + state.wave * 4 - (elite ? 12 : 0);
+  const earlyWave = state.wave === 1;
+  const hp = (earlyWave ? type.hp * 0.62 : type.hp + state.wave * 7) + (elite ? type.hp * 0.75 : 0);
+  const speed = (earlyWave ? type.speed * 0.78 : type.speed + state.wave * 4) - (elite ? 12 : 0);
   enemies.push({
     x,
     y,
@@ -720,7 +729,7 @@ function fire() {
 function completeWave() {
   state.wave++;
   state.spawned = 0;
-  state.target = 8 + state.wave * 3;
+  state.target = state.wave === 2 ? 10 : 8 + state.wave * 3;
   state.spawnTimer = 0;
   player.hp = clamp(player.hp + 12, 0, player.maxHp);
   playSfx("waveStart", { volume: 0.58, playbackRate: 1.04 });
@@ -847,7 +856,9 @@ function updateSpawning(dt) {
   state.spawnTimer -= dt;
   if (state.spawned < state.target && state.spawnTimer <= 0) {
     spawnEnemy();
-    state.spawnTimer = Math.max(0.18, 0.72 - state.wave * 0.045);
+    state.spawnTimer = state.wave === 1
+      ? 1.12
+      : Math.max(0.18, 0.72 - state.wave * 0.045);
   }
 
   if (state.spawned >= state.target && enemies.length === 0) {
@@ -1361,7 +1372,7 @@ function reset() {
     nextXp: 100,
     spawnTimer: 0,
     spawned: 0,
-    target: 10,
+    target: 6,
     activeWeapon: 0,
     shake: 0,
     flashTimer: 0,
