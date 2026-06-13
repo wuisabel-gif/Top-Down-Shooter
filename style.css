@@ -839,3 +839,285 @@ button {
     place-items: start center;
   }
 }
+
+@media (max-width: 768px) {
+  :root {
+    --mobile-ui-scale: 0.82;
+  }
+
+  body {
+    overflow: hidden;
+  }
+
+  .game-shell {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .hud-layer {
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      12px
+      calc(170px + env(safe-area-inset-bottom))
+      12px;
+    transform: scale(var(--mobile-ui-scale));
+    transform-origin: top left;
+    width: calc(100% / var(--mobile-ui-scale));
+    min-height: calc(100% / var(--mobile-ui-scale));
+  }
+
+  .hud-column,
+  .hud-left,
+  .hud-right,
+  .wave-banner,
+  .bottom-hud {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    transform: none;
+    margin: 0 0 10px;
+  }
+
+  .hud-column {
+    gap: 10px;
+  }
+
+  .hud-left,
+  .hud-right {
+    display: contents;
+  }
+
+  .player-panel {
+    order: 1;
+  }
+
+  .currency-panel {
+    order: 2;
+  }
+
+  .wave-banner {
+    order: 3;
+  }
+
+  .weapons-panel {
+    order: 4;
+  }
+
+  .radar-panel {
+    order: 5;
+  }
+
+  .objective-panel {
+    order: 6;
+  }
+
+  .bottom-hud {
+    order: 7;
+  }
+
+  .wave-banner {
+    justify-items: start;
+    gap: 2px;
+    padding: 0 4px;
+    text-align: left;
+  }
+
+  .wave-banner strong {
+    font-size: 22px;
+  }
+
+  .wave-banner span {
+    font-size: 15px;
+  }
+
+  .player-panel {
+    min-height: 0;
+    padding: 14px 16px;
+    grid-template-columns: 62px 1fr;
+    gap: 12px;
+  }
+
+  .avatar-ring {
+    width: 58px;
+    height: 58px;
+  }
+
+  .avatar-core {
+    width: 76px;
+    height: 76px;
+  }
+
+  .panel-title {
+    font-size: 16px;
+  }
+
+  .readout-row strong {
+    font-size: 18px;
+  }
+
+  .readout-row span {
+    font-size: 13px;
+  }
+
+  .weapons-panel,
+  .radar-panel,
+  .objective-panel,
+  .currency-panel {
+    padding: 12px 14px;
+  }
+
+  .weapon-list {
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .weapon-row {
+    grid-template-columns: 24px 42px 1fr;
+    min-height: 46px;
+    padding: 6px 8px;
+  }
+
+  .weapon-slot {
+    font-size: 18px;
+  }
+
+  .weapon-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ammo-pips {
+    gap: 3px;
+    margin-top: 4px;
+  }
+
+  .ammo-pips span {
+    width: 8px;
+    height: 6px;
+  }
+
+  .currency-panel {
+    min-height: 0;
+    gap: 10px;
+  }
+
+  .currency-panel strong {
+    font-size: 20px;
+  }
+
+  .resource-readout span {
+    font-size: 11px;
+  }
+
+  .coin-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .gear-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .radar-panel {
+    height: 126px;
+  }
+
+  .objective-panel {
+    gap: 12px;
+  }
+
+  .objective-panel p {
+    margin-top: 6px;
+    font-size: 14px;
+  }
+
+  .objective-check {
+    flex-basis: 17px;
+    width: 17px;
+    height: 17px;
+  }
+
+  .stats-panel,
+  .perks-panel {
+    display: none;
+  }
+
+  .bottom-hud {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .xp-strip {
+    grid-template-columns: 34px 1fr 70px;
+    gap: 8px;
+    height: 34px;
+    padding: 5px 12px;
+    font-size: 14px;
+  }
+
+  .xp-bar {
+    height: 14px;
+  }
+
+  .ability-dock {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    padding: 10px 12px;
+  }
+
+  .ability-card {
+    width: 100%;
+    aspect-ratio: 1;
+    height: auto;
+  }
+
+  .ability-card strong {
+    right: 6px;
+    bottom: 4px;
+    font-size: 15px;
+  }
+
+  .mobile-controls {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 6;
+    padding:
+      0 14px
+      calc(10px + env(safe-area-inset-bottom))
+      14px;
+    align-items: flex-end;
+    pointer-events: none;
+  }
+
+  .stick,
+  .shoot-button,
+  .dash-button {
+    pointer-events: auto;
+  }
+
+  .stick {
+    width: 96px;
+    height: 96px;
+  }
+
+  .shoot-button {
+    width: 114px;
+    height: 114px;
+    margin-right: 14px;
+  }
+
+  .dash-button {
+    width: 68px;
+    height: 68px;
+  }
+}
