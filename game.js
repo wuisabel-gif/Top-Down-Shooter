@@ -20,6 +20,36 @@ function loadImage(src) {
   return image;
 }
 
+const AUDIO = {
+  music: {
+    theme: assetUrl("assets/audio/music/theme_music.mp3"),
+  },
+  sfx: {
+    pistolShot: assetUrl("assets/audio/sfx/final/sfx_pistol_shot.ogg"),
+    shotgunFire: assetUrl("assets/audio/sfx/final/sfx_shotgun_fire.ogg"),
+    laserFire: assetUrl("assets/audio/sfx/final/sfx_laser_fire.ogg"),
+    rocketLaunch: assetUrl("assets/audio/sfx/final/sfx_rocket_launch.ogg"),
+    rocketExplosion: assetUrl("assets/audio/sfx/final/sfx_rocket_explosion.ogg"),
+    enemyShooterFire: assetUrl("assets/audio/sfx/final/sfx_enemy_shooter_fire.ogg"),
+    enemyDeathSmall: assetUrl("assets/audio/sfx/final/sfx_enemy_death_small.ogg"),
+    enemyDeathHeavy: assetUrl("assets/audio/sfx/final/sfx_enemy_death_heavy.ogg"),
+    exploderBlast: assetUrl("assets/audio/sfx/final/sfx_exploder_blast.ogg"),
+    playerHit: assetUrl("assets/audio/sfx/final/sfx_player_hit.ogg"),
+    levelUp: assetUrl("assets/audio/sfx/final/sfx_level_up.ogg"),
+    weaponSwitch: assetUrl("assets/audio/sfx/final/sfx_weapon_switch.ogg"),
+    uiDeploy: assetUrl("assets/audio/sfx/final/sfx_ui_deploy.ogg"),
+    waveStart: assetUrl("assets/audio/sfx/final/sfx_wave_start.ogg"),
+    gameOver: assetUrl("assets/audio/sfx/final/sfx_game_over.ogg"),
+  },
+};
+
+const audioState = {
+  music: null,
+  audioUnlocked: false,
+  musicStarted: false,
+  gameOverPlayed: false,
+};
+
 const hud = {
   healthFill: document.getElementById("healthFill"),
   healthValue: document.getElementById("healthValue"),
@@ -344,6 +374,7 @@ const state = {
   running: false,
   choosingPilot: true,
   orientationBlocked: false,
+  hitSoundTimer: 0,
   selectedPilot: 0,
   score: 0,
   currency: 0,
@@ -390,6 +421,65 @@ const weaponDamage = (weapon) => weapon.damage + player.damageBonus;
 const weaponCritChance = (weapon) => clamp(weapon.critChance + player.critChance, 0, 1);
 const weaponDisplayList = () => weaponOrder.map((id) => ({ id, ...WEAPONS[id] }));
 
+function ensureMusic() {
+  if (audioState.music) return audioState.music;
+  const music = new Audio(AUDIO.music.theme);
+  music.loop = true;
+  music.volume = 0.42;
+  music.preload = "auto";
+  audioState.music = music;
+  return music;
+}
+
+function unlockAudio() {
+  audioState.audioUnlocked = true;
+  ensureMusic().load();
+}
+
+function playSfx(name, { volume = 0.7, playbackRate = 1 } = {}) {
+  if (!audioState.audioUnlocked) return;
+  const src = AUDIO.sfx[name];
+  if (!src) return;
+  const sound = new Audio(src);
+  sound.volume = volume;
+  sound.playbackRate = playbackRate;
+  sound.preload = "auto";
+  sound.play().catch(() => {});
+}
+
+function startThemeMusic() {
+  if (audioState.musicStarted) return;
+  const music = ensureMusic();
+  audioState.musicStarted = true;
+  music.play().then(() => {
+    audioState.audioUnlocked = true;
+  }).catch(() => {
+    audioState.musicStarted = false;
+  });
+}
+
+function playWeaponSfx(weapon) {
+  if (weapon.id === "shotgun") playSfx("shotgunFire", { volume: 0.62 });
+  else if (weapon.id === "laser") playSfx("laserFire", { volume: 0.5 });
+  else if (weapon.id === "rocket") playSfx("rocketLaunch", { volume: 0.72 });
+  else playSfx("pistolShot", { volume: 0.48 });
+}
+
+function triggerGameOver() {
+  if (!audioState.gameOverPlayed) {
+    playSfx("gameOver", { volume: 0.78 });
+    audioState.gameOverPlayed = true;
+  }
+  state.running = false;
+  state.shake = Math.max(state.shake, 12);
+}
+
+function playPlayerHitSfx() {
+  if (state.hitSoundTimer > 0) return;
+  playSfx("playerHit", { volume: 0.6 });
+  state.hitSoundTimer = 0.18;
+}
+
 function isPhonePortraitBlocked() {
   const isTouchDevice = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
   const isPhoneSized = Math.max(window.innerWidth, window.innerHeight) <= 980;
@@ -423,9 +513,13 @@ function selectPilot(index) {
 }
 
 function deployPilot() {
+  unlockAudio();
+  playSfx("uiDeploy", { volume: 0.6 });
+  startThemeMusic();
   state.choosingPilot = false;
   state.running = true;
   pilotSelectEl?.classList.add("hidden");
+  playSfx("waveStart", { volume: 0.55 });
   addPopup(player.x, player.y - 40, pilots[state.selectedPilot].name, "#57e7ff");
   updateHud();
 }
@@ -571,6 +665,7 @@ function selectWeapon(index) {
   player.cd = Math.min(player.cd, 0.08);
   setupHud();
   updateHud();
+  playSfx("weaponSwitch", { volume: 0.46 });
   addPopup(player.x, player.y - 34, activeWeapon().name, "#57e7ff");
 }
 
@@ -618,6 +713,7 @@ function fire() {
 
   state.flashTimer = 0.07;
   state.shake = Math.max(state.shake, weapon.recoil);
+  playWeaponSfx(weapon);
   addParticles(player.x + nx * 24, player.y + ny * 24, weapon.color, projectileCount > 1 ? 12 : 6, 0.8);
 }
 
@@ -627,6 +723,7 @@ function completeWave() {
   state.target = 8 + state.wave * 3;
   state.spawnTimer = 0;
   player.hp = clamp(player.hp + 12, 0, player.maxHp);
+  playSfx("waveStart", { volume: 0.58, playbackRate: 1.04 });
   addPopup(player.x, player.y - 35, `Wave ${state.wave}`, "#57e7ff");
   state.shake = 5;
 }
@@ -642,6 +739,7 @@ function gainRewards(enemy) {
     state.nextXp += 50;
     player.damageBonus += 3;
     player.hp = clamp(player.hp + 18, 0, player.maxHp);
+    playSfx("levelUp", { volume: 0.66 });
     addPopup(player.x, player.y - 48, "Level Up", "#ffd13f");
     state.shake = 7;
   }
@@ -658,6 +756,9 @@ function damageEnemy(enemy, amount, hitX, hitY, popupColor = "#bff7ff") {
 function killEnemy(index) {
   const enemy = enemies[index];
   addParticles(enemy.x, enemy.y, enemy.elite ? "#ff3656" : enemy.color, enemy.elite ? 22 : 13, enemy.elite ? 1.4 : 1);
+  playSfx(enemy.elite || enemy.type === "tank" ? "enemyDeathHeavy" : "enemyDeathSmall", {
+    volume: enemy.elite || enemy.type === "tank" ? 0.66 : 0.48,
+  });
   gainRewards(enemy);
   addPopup(enemy.x, enemy.y, `+${Math.round(enemy.scoreValue * (enemy.elite ? 1.7 : 1))}`, "#ffd13f");
   enemies.splice(index, 1);
@@ -665,6 +766,7 @@ function killEnemy(index) {
 
 function detonateProjectile(bullet) {
   if (!bullet.splashRadius) return;
+  if (bullet.kind === "rocket") playSfx("rocketExplosion", { volume: 0.8 });
   state.shake = Math.max(state.shake, bullet.kind === "rocket" ? 14 : 7);
   addShockwave(bullet.x, bullet.y, bullet.splashRadius, bullet.kind === "rocket" ? "#ffb13d" : "#ff6b3d");
   addParticles(bullet.x, bullet.y, "#ffb13d", bullet.kind === "rocket" ? 58 : 30, bullet.kind === "rocket" ? 1.85 : 1.35);
@@ -693,8 +795,10 @@ function explodeEnemy(index) {
   if (distance <= enemy.explodeRadius + player.r) {
     const falloff = 1 - clamp(distance / enemy.explodeRadius, 0, 0.72);
     player.hp = Math.max(0, player.hp - enemy.explodeDamage * falloff);
-    if (player.hp <= 0) state.running = false;
+    playPlayerHitSfx();
+    if (player.hp <= 0) triggerGameOver();
   }
+  playSfx("exploderBlast", { volume: 0.74 });
   state.shake = Math.max(state.shake, 10);
   addShockwave(enemy.x, enemy.y, enemy.explodeRadius, "#ff3656", 0.34);
   addParticles(enemy.x, enemy.y, "#ff3656", 34, 1.45);
@@ -716,6 +820,7 @@ function fireEnemyShot(enemy, dx, dy, distance) {
     trailColor: enemy.elite ? "rgba(255, 47, 101, 0.45)" : "rgba(255, 72, 61, 0.38)",
     trail: [],
   });
+  playSfx("enemyShooterFire", { volume: enemy.elite ? 0.58 : 0.46 });
   addParticles(enemy.x + nx * enemy.r, enemy.y + ny * enemy.r, "#ff4054", enemy.elite ? 7 : 4, 0.7);
 }
 
@@ -784,12 +889,12 @@ function updateEnemyBullets(dt) {
 
     if (Math.hypot(b.x - player.x, b.y - player.y) < b.r + player.r) {
       player.hp = Math.max(0, player.hp - b.damage);
+      playPlayerHitSfx();
       state.shake = Math.max(state.shake, 6);
       addParticles(b.x, b.y, b.color, 12, 1);
       enemyBullets.splice(i, 1);
       if (player.hp <= 0) {
-        state.running = false;
-        state.shake = 12;
+        triggerGameOver();
       }
     }
   }
@@ -833,11 +938,11 @@ function updateEnemies(dt) {
 
     if (m < e.r + player.r) {
       player.hp -= e.contactDps * (e.elite ? 1.35 : 1) * dt;
+      playPlayerHitSfx();
       state.shake = Math.max(state.shake, 3);
       if (player.hp <= 0) {
         player.hp = 0;
-        state.running = false;
-        state.shake = 12;
+        triggerGameOver();
       }
     }
 
@@ -864,6 +969,7 @@ function updateEnemies(dt) {
 function updateEffects(dt) {
   state.shake = Math.max(0, state.shake - dt * 18);
   state.flashTimer = Math.max(0, state.flashTimer - dt);
+  state.hitSoundTimer = Math.max(0, state.hitSoundTimer - dt);
 
   for (let i = shockwaves.length - 1; i >= 0; i--) {
     const wave = shockwaves[i];
@@ -1246,6 +1352,7 @@ function reset() {
     running: false,
     choosingPilot: true,
     orientationBlocked: false,
+    hitSoundTimer: 0,
     score: 0,
     currency: 0,
     wave: 1,
@@ -1259,6 +1366,7 @@ function reset() {
     shake: 0,
     flashTimer: 0,
   });
+  audioState.gameOverPlayed = false;
   player.x = world.width / 2;
   player.y = world.height / 2;
   player.cd = 0;
