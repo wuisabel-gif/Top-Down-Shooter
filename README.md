@@ -2,11 +2,31 @@
 
 A neon sci-fi browser shooter built with plain HTML, CSS, and JavaScript.
 
-![Live demo screenshot](assets/readme/live-demo.png)
+![Version 1.1 gameplay HUD](assets/readme/demo-game-page.jpg)
+
+![Version 1.1 role selection](assets/readme/demo2.0-role-selection.jpg)
 
 ## Live Demo
 
 Play here: [https://wuisabel-gif.github.io/Top-Down-Shooter/](https://wuisabel-gif.github.io/Top-Down-Shooter/)
+
+## Version 1.1 Progress
+
+Version 1.1 focuses on turning the prototype into a more complete roguelike shooter experience.
+
+- Added role/pilot selection with multiple playable character cards
+- Improved the sci-fi HUD, weapon panel, score panel, radar, XP bar, and touch controls
+- Improved player presentation with generated avatar/portrait assets
+- Improved enemy visuals and enemy behavior variety
+- Added distinct weapon logic for pistol, shotgun, laser, and rocket launcher
+- Added different bullet/projectile styles for each weapon
+- Added weapon unlock costs so stronger weapons require currency before use
+- Made the first two waves easier for a smoother start
+- Added sound effects and background music support
+
+## Version 1.1 Screenshots
+
+The original live demo screenshot is kept above for history. These newer screenshots show the updated game UI and role selection flow.
 
 ## What Is In The Game
 
