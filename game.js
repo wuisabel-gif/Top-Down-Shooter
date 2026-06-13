@@ -6,6 +6,7 @@ const playerSprite = new Image();
 const pilotSelectEl = document.getElementById("pilotSelect");
 const confirmPilotEl = document.getElementById("confirmPilot");
 const pilotCardListEl = document.getElementById("pilotCardList");
+const orientationGuardEl = document.getElementById("orientationGuard");
 
 function assetUrl(path) {
   return new URL(path.replace(/^\//, ""), window.location.href).toString();
@@ -304,6 +305,7 @@ const perks = [
 const state = {
   running: false,
   choosingPilot: true,
+  orientationBlocked: false,
   selectedPilot: 0,
   score: 0,
   currency: 0,
@@ -347,6 +349,18 @@ const rand = (a, b) => Math.random() * (b - a) + a;
 const pct = (value, max) => `${clamp((value / max) * 100, 0, 100)}%`;
 const activeWeapon = () => weapons[state.activeWeapon];
 const weaponDamage = (weapon) => weapon.damage + player.damageBonus;
+
+function isPhonePortraitBlocked() {
+  const isTouchDevice = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  const isPhoneSized = Math.max(window.innerWidth, window.innerHeight) <= 980;
+  return isTouchDevice && isPhoneSized && window.innerHeight > window.innerWidth;
+}
+
+function updateOrientationGuard() {
+  state.orientationBlocked = isPhonePortraitBlocked();
+  orientationGuardEl?.classList.toggle("hidden", !state.orientationBlocked);
+  if (state.orientationBlocked) mouse.down = false;
+}
 
 function applyPilot(index) {
   const pilot = pilots[index];
@@ -846,7 +860,7 @@ function updateHud() {
 }
 
 function update(dt) {
-  if (!state.running) return;
+  if (!state.running || state.orientationBlocked) return;
   updatePlayer(dt);
   updateSpawning(dt);
   updateBullets(dt);
@@ -1179,6 +1193,7 @@ function reset() {
   Object.assign(state, {
     running: false,
     choosingPilot: true,
+    orientationBlocked: false,
     score: 0,
     currency: 0,
     wave: 1,
@@ -1239,6 +1254,9 @@ window.addEventListener("mouseup", () => {
   mouse.down = false;
 });
 
+window.addEventListener("resize", updateOrientationGuard);
+window.addEventListener("orientationchange", updateOrientationGuard);
+
 function renderGameToText() {
   return JSON.stringify({
     coordinates: "origin top-left, x right, y down",
@@ -1274,5 +1292,6 @@ window.advanceTime = (ms) => {
 
 setupHud();
 setupPilotSelect();
+updateOrientationGuard();
 updateHud();
 requestAnimationFrame(frame);
