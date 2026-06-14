@@ -2,9 +2,9 @@
 
 A neon sci-fi browser shooter built with plain HTML, CSS, and JavaScript.
 
-![Version 1.1 gameplay HUD](assets/readme/demo-game-page.jpg)
-
 ![Version 1.1 role selection](assets/readme/demo2.0-role-selection.jpg)
+
+![Version 1.1 gameplay HUD](assets/readme/demo-game-page.jpg)
 
 ## Live Demo
 
