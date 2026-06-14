@@ -2,13 +2,33 @@
 
 A neon sci-fi browser shooter built with plain HTML, CSS, and JavaScript.
 
-![Version 1.1 role selection](assets/readme/demo2.0-role-selection.jpg)
-
-![Version 1.1 gameplay HUD](assets/readme/demo-game-page.jpg)
-
 ## Live Demo
 
 Play here: [https://wuisabel-gif.github.io/Top-Down-Shooter/](https://wuisabel-gif.github.io/Top-Down-Shooter/)
+
+Watch the live play demo: [https://youtu.be/rsETcoiq-Rg](https://youtu.be/rsETcoiq-Rg)
+
+## Development Progression
+
+Neon Breach grew through three visible stages: first a simple playable prototype, then a full sci-fi combat HUD, and finally a role selection flow that makes the game feel more like a complete roguelike shooter.
+
+### Stage 1: Prototype Arena
+
+The first version focused on proving the core loop: move, aim, shoot, survive waves, and track score. The visuals were simple, with basic red and blue combat shapes standing in for enemies, bullets, and the player.
+
+![Stage 1 prototype arena](assets/readme/live-demo.png)
+
+### Stage 2: Version 1.1 Gameplay HUD
+
+The current gameplay screen adds the polished cyberpunk interface: weapon panel, player health, XP bar, radar, objective tracker, score/currency panel, touch controls, generated icons, improved bullets, and clearer enemy/player presentation.
+
+![Stage 2 version 1.1 gameplay HUD](assets/readme/demo-game-page.jpg)
+
+### Stage 3: Pilot Selection
+
+The role selection screen adds a pre-game choice layer, letting players choose different pilots before deploying into the arena.
+
+![Stage 3 pilot selection](assets/readme/demo2.0-role-selection.jpg)
 
 ## Version 1.1 Progress
 
