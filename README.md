@@ -24,10 +24,6 @@ Version 1.1 focuses on turning the prototype into a more complete roguelike shoo
 - Made the first two waves easier for a smoother start
 - Added sound effects and background music support
 
-## Version 1.1 Screenshots
-
-The original live demo screenshot is kept above for history. These newer screenshots show the updated game UI and role selection flow.
-
 ## What Is In The Game
 
 - Pilot selection with 14 playable character cards
